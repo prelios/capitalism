@@ -1,4 +1,4 @@
-# Capitalism with Cards --- Functional Game Specification
+# Capitalism --- Functional Game Specification
 
 **Status:** Prototype / implementation reference\
 **Purpose:** Business and functional description for implementing the
@@ -6,7 +6,7 @@ digital game.
 
 ## 1. Product concept
 
-*Capitalism with Cards* is a turn-based multiplayer card game about
+*Capitalism* is a turn-based multiplayer card game about
 accumulation, hostile acquisition, market instability, and eventual
 consolidation.
 
@@ -30,13 +30,10 @@ supported.
 
 -   Hard minimum: **4 starting players**.
 -   Soft maximum: **10 starting players**.
--   The rules scale mathematically beyond 10, but this is not a product
-    goal.
--   Typical simulations have taken roughly **30--60 turns**.
--   Monopoly occurred in roughly **10--20%** of broad simulation sets;
-    four-player games were lower (observed maximum around 7%).
--   Human duration is tentatively expected around **20--30 minutes**,
-    pending playtesting.
+-   The rules scale mathematically beyond 10, but this is not a product goal.
+-   Typical simulations have taken roughly **30-60 turns**.
+-   Monopoly occurred in roughly **10-20%** of broad simulation sets; four-player games were lower (observed maximum around 7%).
+-   Human duration is tentatively expected around **20-30 minutes**, pending playtesting.
 
 These are prototype observations, not contractual balance targets.
 
@@ -63,12 +60,11 @@ A themed release may call the four suits:
 -   **Tech**
 -   **Hype**
 
-The data model should preserve suit identity so optional variants can
-use it later.
+The data model should preserve suit identity so optional variants can use it later.
 
 ## 4. Setup
 
-1.  Determine starting player count `N`.
+1.  Determine starting player count `N`. Each player is given (or chooses) a company token.
 2.  Construct four cards of every value `1..N`.
 3.  Shuffle.
 4.  Deal exactly 4 cards to every player.
@@ -96,8 +92,7 @@ Eliminated players are skipped thereafter.
 -   Trade/event history.
 
 Because trades are public, attentive players can infer hands over time.
-This is intentional; the game should not automatically reveal inferred
-information.
+This is intentional; the game should not automatically reveal inferred information.
 
 ## 6. Turn structure
 
@@ -105,17 +100,13 @@ On Player A's turn:
 
 1.  A chooses any other **living** Player B.
 2.  A publicly offers exactly **one card** from A's hand.
-3.  B must return **one or more cards** whose combined value is greater
-    than or equal to the offered value.
-4.  If B can satisfy the offer, B receives A's offered card and A
-    receives B's selected cards.
-5.  If B cannot satisfy the offer even using B's entire hand, B is
-    eliminated.
+3.  B must return **one or more cards** whose combined value is greater than or equal to the offered value.
+4.  If B can satisfy the offer, B receives A's offered card and A receives B's selected cards.
+5.  If B cannot satisfy the offer even using B's entire hand, B is eliminated. A receives all of B's cards.
 6.  Resolve resulting state changes.
 7.  Advance to the next surviving player.
 
-A player cannot target themselves. There is no voluntary pass in the
-base rules.
+A player cannot target themselves. There is no voluntary pass in the base rules.
 
 ## 7. Repayment
 
@@ -130,14 +121,15 @@ For an offered `3`, examples include `3`, `1+2`, `4`, and `1+1+2`.
 
 ### Human choice
 
-A human target chooses any legal repayment. The engine must not force
-the cheapest subset.
+A human target chooses any legal repayment.
+The engine must not force the cheapest subset.
 
 ### Baseline AI
 
-Prototype AI generally: 1. Pays an exact match if possible. 2. Otherwise
-chooses the subset with the smallest total greater than the offer. 3. Is
-eliminated if no subset can reach the offer.
+Prototype AI generally:
+1. Pays an exact match if possible.
+2. Otherwise chooses the subset with the smallest total greater than the offer.
+3. Is eliminated if no subset can reach the offer.
 
 Tie-breaking among equally valued subsets is AI policy, not a core rule.
 
@@ -153,14 +145,13 @@ If B cannot satisfy A's offer:
 
 Snowballing from acquisition is intentional.
 
-### Optional acquisition history
+### Acquisition history
 
-The UI may display public "company trophies" showing acquisitions. These
-are informational/thematic, not currency.
+The UI displays public "company tokens" showing acquisitions.
+These are informational/thematic, not currency.
 
-A possible optional rule transfers a defeated player's previously
-acquired trophies to their acquirer, representing acquisition of the
-whole conglomerate. This is **not yet a locked base rule**.
+An eliminated player's previously acquired tokens are transferred to their acquirer,
+representing acquisition of the whole conglomerate.
 
 ## 9. Market instability
 
@@ -172,11 +163,10 @@ The unstable value is the **current highest active card value**.
 
 When destruction resolves:
 
-> **ALL cards of that value are removed from play, regardless of
-> owner.**
+> **ALL cards of that value are removed from play, regardless of owner.**
 
 Example: in a six-player game, a crash of value 6 removes every
-remaining 6. The effective market becomes 1--5. A later crash may remove
+remaining 6. The effective market becomes 1-5. A later crash may remove
 all 5s.
 
 ### Delayed destruction
@@ -184,10 +174,58 @@ all 5s.
 Instability does not destroy cards immediately. A warning period allows
 normal play and trading of unstable cards.
 
-The model should explicitly represent: - whether instability is
-active; - the unstable value; - when the warning period resolves.
+The model should explicitly represent:
+- whether instability is active;
+- the unstable value;
+- when the warning period resolves.
 
 The exact warning duration remains configurable pending playtesting.
+
+### Elimination During Market Instability
+
+If a player is eliminated through a failed trade while the market is already unstable:
+
+1. Resolve the acquisition normally:
+   - The eliminated player's cards transfer to the acquiring player.
+   - The eliminated player's company tokens transfer to the acquiring player.
+2. Immediately resolve the current market crash.
+3. Remove ALL cards of the currently unstable value from every player's hand, including cards just acquired.
+4. The market returns to a stable state.
+5. Reset boredom/stagnation.
+
+The elimination does **not** queue or trigger instability for the next-highest value.
+
+Therefore:
+
+- Elimination while market is stable → starts market instability.
+- Elimination while market is unstable → immediately resolves the current market crash.
+
+This makes further acquisitions during the instability warning period capable of bringing the pending crash forward.
+
+### Bankruptcy Due to Market Crash
+
+A player whose hand becomes empty because of a market crash is **bankrupt**.
+
+Bankruptcy removes the player from the game, but is distinct from acquisition:
+
+- No other player receives the bankrupt player's cards.
+- No player is credited with eliminating/acquiring them.
+- Their company/acquisition tokens are removed from the game rather than transferred.
+- Bankruptcy does **not** trigger another market instability or another crash.
+
+Crash resolution is atomic:
+
+1. Remove ALL cards of the unstable value from all hands simultaneously.
+2. Determine all players whose hands are now empty.
+3. Declare those players bankrupt simultaneously and remove them from turn order.
+4. Return the market to a stable state.
+5. Reset boredom/stagnation.
+6. Check the game-ending conditions.
+
+Multiple players may therefore become bankrupt in the same crash.
+
+If a crash removes all remaining players, the game ends without a monopoly winner.
+Under score-based resolution, all affected players have a final card value of 0 and therefore tie unless another future rule specifies otherwise.
 
 ## 10. Stagnation / boredom
 
@@ -200,18 +238,19 @@ Historical implementation:
 
 with `BOREDOM_MULTIPLIER = 10`.
 
-Conceptually: - Ordinary turns increase boredom. - Eliminations and
-instability/crash events reset or resolve stagnation. - Reaching the
-threshold triggers market instability. - This replaced a crude
-maximum-turn cutoff and eliminated indefinitely running simulations.
+Conceptually:
+- Ordinary turns increase boredom.
+- Eliminations and instability/crash events reset or resolve stagnation.
+- Reaching the threshold triggers market instability.
+- This replaced a crude maximum-turn cutoff and eliminated indefinitely running simulations.
 
-Timed instability appeared in roughly 4--20% of prior normal
-simulations.
+Timed instability appeared in roughly 4--20% of prior normal simulations.
 
 ### Mirror/equilibrium-like trades
 
-A candidate refinement: - Normal completed turn: `+1 boredom`. -
-Equal-value/mirror-like trade: additional `+1 boredom`.
+A candidate refinement:
+- Normal completed turn: `+1 boredom`.
+- Equal-value/mirror-like trade: additional `+1 boredom`.
 
 This is intended to accelerate contraction during repetitive
 value-preserving play. **The exact modifier and definition are
@@ -223,17 +262,23 @@ The engine may maintain an integer counter without showing that exact
 integer. Player-facing states could instead communicate stable market,
 increasing pressure, instability warning, and crash.
 
+### Alternative
+
+A simpler alternative (pending playtesting) may be to allow 1-2 full rounds of "stable market" play.
+If, after 1-2 rounds, no elimination has occurred, the market becomes unstable.
+Playtesting will reveal if this obvious counter is better than the more hidden boredom counter.
+
 ## 11. Equilibrium
 
 Earlier designs attempted explicit equilibrium detection. Testing showed
 that a structurally "stable" hand distribution can still be broken by a
 legal suboptimal trade.
 
-Therefore: - Do not assume a snapshot pattern proves permanent
-equilibrium. - Equilibrium is **not a victory condition**. -
-Boredom/market contraction is the preferred general anti-stagnation
-mechanism. - Explicit confirmation logic, particularly for a two-player
-endgame, remains an unresolved option rather than a core requirement.
+Therefore:
+- Do not assume a snapshot pattern proves permanent equilibrium.
+- Equilibrium is **not a victory condition**.
+- Boredom/market contraction is the preferred general anti-stagnation mechanism.
+- Explicit confirmation logic, particularly for a two-player endgame, remains an unresolved option rather than a core requirement.
 
 ## 12. Ending and victory
 
@@ -247,16 +292,23 @@ player wins by **monopoly**.
 A match may also end without monopoly through a supported stagnation/end
 condition or, in human play, consensual termination.
 
-Then: 1. Sum the numerical values of each surviving player's hand. 2.
-Highest total wins. 3. Ties are allowed.
+Then:
+1. Sum the numerical values of each surviving player's hand.
+2. Highest total wins.
+3. Ties are allowed.
 
 Eliminated players do not compete for score victory in the base game.
 
 ## 13. Negotiation
 
-Players may freely: - make promises; - form temporary alliances; -
-coordinate attacks; - threaten retaliation; - bluff; - lie; - betray
-agreements.
+Players may freely:
+- make promises;
+- form temporary alliances;
+- coordinate attacks;
+- threaten retaliation;
+- bluff;
+- lie;
+- betray agreements.
 
 The rules engine does **not** enforce such agreements.
 
@@ -290,10 +342,12 @@ AI policy must remain separate from legal action/resolution.
 
 ### Optimal family
 
-Simulation/perfect-information agents that may know all hands: - Avoid
-unproductive mirror offers. - Try to offload cards due for
-destruction. - **OptiHigh:** highest offer. - **OptiLow:** lowest
-offer. - **OptiRand:** random offer.
+Simulation/perfect-information agents that may know all hands:
+- Avoid unproductive mirror offers.
+- Try to offload cards due for destruction.
+- **OptiHigh:** highest value-card offer.
+- **OptiLow:** lowest value-card offer.
+- **OptiRand:** random card offer.
 
 These should not be presented as fair human-equivalent bots unless
 deliberately designed that way.
@@ -326,88 +380,89 @@ priority than global events.
 ### Token economy
 
 An earlier proposal used spendable tokens and a central pot. It adds
-bookkeeping and is **not recommended for the base game**. Informational
-acquisition trophies are preferred.
-
-## 16. Tabletop adaptation reference
-
-The base game can use a standard deck by selecting ranks `1..N` across
-four suits.
-
-A commercial version can theme suits as Money, Workers, Tech and Hype.
-
-For organic stagnation tracking, a tabletop version can use one market
-marker rather than an explicit numeric boredom counter: 1. After a
-complete round without elimination or crash, advance the marker. 2. A
-completed cycle/lap triggers instability. 3. Elimination or crash resets
-it. 4. Instability has a warning period before all cards of the unstable
-value are destroyed.
-
-Exact pacing requires playtesting.
-
-Each player may also have one company marker; when eliminated, it goes
-to the acquirer to make acquisition history and "sharks" visible without
-changing mechanics.
+bookkeeping and is **not recommended for the base game**.
+Informational company tokens are preferred.
 
 ## 17. Functional architecture
 
 ### GameModel / GameState
 
-Owns authoritative rules and state: - players and survival; - hands; -
-setup; - turn order/current player; - trade validation/resolution; -
-elimination; - instability/destruction; - boredom; - end detection; -
-scoring; - public event history.
+Owns authoritative rules and state:
+- players and survival;
+- hands;
+- setup;
+- turn order/current player;
+- trade validation/resolution;
+- elimination;
+- instability/destruction;
+- boredom;
+- end detection;
+- scoring;
+- public event history.
 
 **Rule:** if it changes authoritative state or can affect who wins, it
 belongs in the domain/model layer.
 
 ### GameController / Match Orchestrator
 
-Owns process: - starting matches; - requesting human/AI actions; -
-submitting actions to the model; - advancing turns; - coordinating
-"waiting for input"/AI process states; - wiring model events to
-presentation.
+Owns process:
+- starting matches;
+- requesting human/AI actions;
+- submitting actions to the model;
+- advancing turns;
+- coordinating "waiting for input"/AI process states;
+- wiring model events to presentation.
 
 It should not duplicate game rules.
 
 ### UI
 
-Owns: - public state; - local private hand; - target/card/repayment
-selection; - logs; - market-status presentation; - game-over
-presentation.
+Owns:
+- public state;
+- local private hand;
+- target/card/repayment selection;
+- logs;
+- market-status presentation;
+- game-over presentation.
 
 UI submits **intent** and does not directly mutate authoritative state.
 
 ### AI
 
-Consumes an allowed view of state and chooses legal actions. Policy is
-separate from resolution.
+Consumes an allowed view of state and chooses legal actions.
+Policy is separate from resolution.
 
 ## 18. Important domain events
 
-Useful observable events include: - turn started; - trade proposed; -
-trade resolved; - player eliminated/acquired; - market instability
-started; - market instability updated; - market value destroyed/crash
-resolved; - turn ended; - game ended.
+Useful observable events include:
+- turn started;
+- trade proposed;
+- trade resolved;
+- player eliminated/acquired;
+- market instability started;
+- market instability updated;
+- market value destroyed/crash resolved;
+- turn ended;
+- game ended.
 
 Events announce what happened; they should not replace rule execution.
 
 ## 19. Multiplayer authority
 
-The architecture should remain compatible with an authoritative
-multiplayer match: - clients are not trusted to validate
-trades/elimination; - clients receive only hidden information they are
-authorized to see; - public events are broadcast; - submitted actions
-are validated authoritatively; - random setup is authoritative; - AI and
-humans should ideally use the same action interface.
+The architecture should remain compatible with an authoritative multiplayer match:
+- clients are not trusted to validate trades/elimination;
+- clients receive only hidden information they are authorized to see;
+- public events are broadcast;
+- submitted actions are validated authoritatively;
+- random setup is authoritative;
+- AI and humans should ideally use the same action interface.
 
 Networking need not be part of the first GUI prototype, but the domain
 should not be coupled to a local UI.
 
 ## 20. Base-game invariants
 
-1.  Every active card is owned by exactly one living player unless
-    destroyed.
+1.  Every active card is owned by exactly one living player unless destroyed.
 2.  At setup, every player owns exactly 4 cards.
 3.  Initial values lie in `1..N`.
 4.  A successful normal trade conserves cards in play.
@@ -421,14 +476,13 @@ should not be coupled to a local UI.
 12. Players cannot target themselves.
 13. Monopoly exists iff exactly one player remains alive.
 14. Base-game suit identity never affects value or legality.
-15. Another player's private hand is absent from a normal player
-    information view.
+15. Another player's private hand is absent from a normal player information view.
 
 ## 21. Initial digital implementation scope
 
 Prioritize a complete ugly-but-playable match:
 
-1.  Setup for 4--10 players.
+1.  Setup for 4-10 players.
 2.  Headless authoritative state/turn progression.
 3.  Public player info and private local hand.
 4.  Human target/card selection.
@@ -451,13 +505,10 @@ Do not silently hard-code these as final design decisions:
 
 -   Exact instability warning duration.
 -   Final boredom threshold/multiplier.
--   Whether mirror/equal-value trades add extra boredom and their exact
-    definition.
+-   Whether mirror/equal-value trades add extra boredom and their exact definition.
 -   Whether boredom is shown exactly or qualitatively.
--   Whether explicit equilibrium/end detection is needed, especially at
-    two players.
+-   Whether explicit equilibrium/end detection is needed, especially at two players.
 -   Exact digital non-monopoly termination mechanism.
--   Whether acquisition trophies inherit through acquisitions.
 -   Which AI personalities ship.
 -   Whether global suit events are implemented.
--   Final recommended player count within 4--10.
+-   Final recommended player count within 4-10.
