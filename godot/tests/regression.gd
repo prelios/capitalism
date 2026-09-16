@@ -9,11 +9,12 @@ func _init() -> void:
 	test_monopoly_precedes_pending_crash()
 	test_unstable_acquisition_resolves_one_crash()
 	test_simultaneous_bankruptcy_ends_in_meltdown()
+	test_stable_two_player_duopoly()
 	test_fixed_seat_turn_traversal()
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Epic 0 regression checks passed: 5 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 6 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -92,6 +93,33 @@ func test_simultaneous_bankruptcy_ends_in_meltdown() -> void:
 	expect(game.turn_counter == turns_before, "terminal match advanced after meltdown")
 
 
+func test_stable_two_player_duopoly() -> void:
+	var game := GameModel.new(2)
+	var winners: Array[int] = []
+	game.game_over.connect(func(_ending: String, result: Array[Player]) -> void:
+		for player in result:
+			winners.append(player.id)
+	)
+	game.players[0].hand = [1, 2]
+	game.players[1].hand = [1, 2]
+	game.max_value = 2
+	expect(game.check_game_end(), "stable two-player equilibrium did not end the game")
+	expect(game.game_finished and winners == [1, 2], "duopoly did not declare both survivors as winners")
+
+	var unstable_game := GameModel.new(2)
+	unstable_game.players[0].hand = [1, 2]
+	unstable_game.players[1].hand = [1, 2]
+	unstable_game.max_value = 2
+	unstable_game.market_stable = false
+	expect(!unstable_game.check_game_end(), "unstable two-player market ended as a duopoly")
+
+	var incomplete_game := GameModel.new(2)
+	incomplete_game.players[0].hand = [1, 3]
+	incomplete_game.players[1].hand = [1, 2]
+	incomplete_game.max_value = 2
+	expect(!incomplete_game.check_game_end(), "missing active value ended as a duopoly")
+
+
 func test_fixed_seat_turn_traversal() -> void:
 	var game := GameModel.new(4)
 	var started: Array[int] = []
@@ -120,7 +148,7 @@ func run_seeded_smoke(player_count: int, run_seed: int) -> void:
 		game.end_turn()
 	expect(game.game_finished, "%d-player smoke seed %d hit diagnostic cap %d" % [player_count, run_seed, cap])
 	if game.game_finished:
-		expect(game.game_finished and (game.alive_players().size() <= 1), "%d-player smoke ended with an invalid survivor count" % player_count)
+		expect(game.game_finished and (game.alive_players().size() <= 2), "%d-player smoke ended with an invalid survivor count" % player_count)
 		for player in game.alive_players():
 			for card in player.hand:
 				expect(card > 0, "%d-player smoke retained a non-positive active card" % player_count)

@@ -151,6 +151,8 @@ func finalize_turn() -> void:
 		else:
 			countdown_to_destruction -= 1
 		return
+	if check_game_end():
+		return
 	if boredom_counter > BOREDOM_MULTIPLIER * alive_players().size():
 		destabilize_market()
 
@@ -204,7 +206,20 @@ func check_game_end() -> bool:
 	if alive.size() == 1:
 		finish_game("Monopoly", alive)
 		return true
+	if is_duopoly_equilibrium(alive):
+		finish_game("Duopoly", alive)
+		return true
 	return false
+
+
+func is_duopoly_equilibrium(alive: Array[Player]) -> bool:
+	if !market_stable or alive.size() != 2 or max_value <= 0:
+		return false
+	for player in alive:
+		for value in range(1, max_value + 1):
+			if !player.hand.has(value):
+				return false
+	return true
 
 
 func finish_game(ending: String, winners: Array[Player]) -> void:

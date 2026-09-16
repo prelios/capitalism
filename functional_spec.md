@@ -274,12 +274,17 @@ Playtesting will reveal if this obvious counter is better than the more hidden b
 ## 11. Equilibrium
 
 Earlier designs attempted explicit equilibrium detection. Testing showed
-that a structurally "stable" hand distribution can still be broken by a
-legal suboptimal trade. Therefore a hand snapshot never ends a v1 match:
+that a structurally "stable" hand distribution with three or more players
+can still be broken by a legal suboptimal trade. Therefore such a snapshot
+never ends a v1 match; boredom-driven market contraction is its only
+anti-stagnation path.
 
-- Do not assume a snapshot pattern proves permanent equilibrium.
-- Equilibrium is **not a victory condition**.
-- Boredom-driven market contraction is the only v1 anti-stagnation path.
+Two players are the deliberate exception. A stable two-player market is a
+**duopoly equilibrium** when each survivor holds at least one card of every
+active value from `1..current highest active value`. The game ends with
+both survivors as winners. An unstable market never qualifies, and merely
+having the same number of distinct cards is insufficient if either player
+is missing an active value.
 
 ## 12. Ending and victory
 
@@ -298,11 +303,19 @@ in **Global Economic Meltdown** (working name), with an empty winner list.
 No player wins by score. The model must not advance the turn or emit a
 second ending event after either terminal outcome.
 
+### Duopoly equilibrium
+
+If exactly two players remain, the market is stable, and both players meet
+the two-player equilibrium condition in section 11, the game ends in a
+**Duopoly**. Both survivors are winners; all previously eliminated players
+remain losers. Monopoly and Global Economic Meltdown retain their stated
+precedence when either applies.
+
 ### Future material
 
-Score comparison, consensual endings, and any other non-monopoly ending
-mechanism are outside v1. They may be reconsidered in a future rules
-contract, but are not requirements for the base game.
+Score comparison, consensual endings, and other non-monopoly endings beyond
+the defined duopoly equilibrium are outside v1. They may be reconsidered in
+a future rules contract, but are not requirements for the base game.
 
 ## 13. Negotiation
 
@@ -501,8 +514,8 @@ Prioritize a complete ugly-but-playable match:
 12. Basic game-over UI.
 
 Do **not** make the initial GUI dependent on animations, drag-and-drop,
-artwork, suit powers, event decks, token economics, complex equilibrium
-detection, or networking.
+artwork, suit powers, event decks, token economics, equilibrium detection
+for three or more players, or networking.
 
 ## 22. Open decisions / configuration points
 
