@@ -224,8 +224,9 @@ Crash resolution is atomic:
 
 Multiple players may therefore become bankrupt in the same crash.
 
-If a crash removes all remaining players, the game ends without a monopoly winner.
-Under score-based resolution, all affected players have a final card value of 0 and therefore tie unless another future rule specifies otherwise.
+If a crash removes all remaining players, the game ends immediately in
+**Global Economic Meltdown** (working name). It has no winners. This is
+not a score tie.
 
 ## 10. Stagnation / boredom
 
@@ -242,7 +243,9 @@ Conceptually:
 - Ordinary turns increase boredom.
 - Eliminations and instability/crash events reset or resolve stagnation.
 - Reaching the threshold triggers market instability.
-- This replaced a crude maximum-turn cutoff and eliminated indefinitely running simulations.
+- This is the v1 contraction mechanism. It replaces a crude maximum-turn
+  cutoff; a simulation turn cap is diagnostic evidence of a fault, never a
+  game result.
 
 Timed instability appeared in roughly 4--20% of prior normal simulations.
 
@@ -272,32 +275,34 @@ Playtesting will reveal if this obvious counter is better than the more hidden b
 
 Earlier designs attempted explicit equilibrium detection. Testing showed
 that a structurally "stable" hand distribution can still be broken by a
-legal suboptimal trade.
+legal suboptimal trade. Therefore a hand snapshot never ends a v1 match:
 
-Therefore:
 - Do not assume a snapshot pattern proves permanent equilibrium.
 - Equilibrium is **not a victory condition**.
-- Boredom/market contraction is the preferred general anti-stagnation mechanism.
-- Explicit confirmation logic, particularly for a two-player endgame, remains an unresolved option rather than a core requirement.
+- Boredom-driven market contraction is the only v1 anti-stagnation path.
 
 ## 12. Ending and victory
 
 ### Monopoly
 
-If exactly one player remains alive, the game ends immediately and that
-player wins by **monopoly**.
+After every acquisition and after each atomic crash resolution, determine
+the surviving players exactly once. If exactly one player remains alive,
+the game ends immediately and that player wins by **monopoly**. In
+particular, an acquisition that leaves one survivor wins before a pending
+market crash can remove cards from the acquirer.
 
-### Non-monopoly ending
+### Global Economic Meltdown
 
-A match may also end without monopoly through a supported stagnation/end
-condition or, in human play, consensual termination.
+If an atomic market crash removes every remaining player, the game ends
+in **Global Economic Meltdown** (working name), with an empty winner list.
+No player wins by score. The model must not advance the turn or emit a
+second ending event after either terminal outcome.
 
-Then:
-1. Sum the numerical values of each surviving player's hand.
-2. Highest total wins.
-3. Ties are allowed.
+### Future material
 
-Eliminated players do not compete for score victory in the base game.
+Score comparison, consensual endings, and any other non-monopoly ending
+mechanism are outside v1. They may be reconsidered in a future rules
+contract, but are not requirements for the base game.
 
 ## 13. Negotiation
 
@@ -491,7 +496,7 @@ Prioritize a complete ugly-but-playable match:
 7.  Trade resolution/elimination.
 8.  Delayed instability and destruction of all highest-value cards.
 9.  Boredom-triggered instability.
-10. Monopoly and score-based ending.
+10. Monopoly and no-winner Global Economic Meltdown.
 11. Public event/trade log.
 12. Basic game-over UI.
 
@@ -507,8 +512,6 @@ Do not silently hard-code these as final design decisions:
 -   Final boredom threshold/multiplier.
 -   Whether mirror/equal-value trades add extra boredom and their exact definition.
 -   Whether boredom is shown exactly or qualitatively.
--   Whether explicit equilibrium/end detection is needed, especially at two players.
--   Exact digital non-monopoly termination mechanism.
 -   Which AI personalities ship.
 -   Whether global suit events are implemented.
 -   Final recommended player count within 4-10.
