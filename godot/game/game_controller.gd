@@ -17,6 +17,7 @@ func play_game():
 		
 		# Current player chooses target
 		var target = current.choose_target(game.alive_players())
+		$DebugLogPanel._on_turn_matchup(current, target)
 		
 		# Propose trade
 		var offered_card = game.propose_trade(current, target)
@@ -47,7 +48,7 @@ func start_game() -> void:
 	# Choose random player to start
 	game.pick_starting_player()
 	
-	print("Starting game")
+	$DebugLogPanel._on_game_started(game.players)
 	play_game()
 
 

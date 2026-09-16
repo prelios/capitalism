@@ -1,8 +1,21 @@
 extends Panel
 
 
+func _on_game_started(players: Array[Player]) -> void:
+	print("Starting game with %d players:" % players.size())
+	for player in players:
+		print("  Player %d: %s" % [player.id, player.player_type])
+
+
 func _on_turn_started(turn: int, current_player: Player) -> void:
-	print("---------\nTurn %d started with Player %d" % [turn, current_player.id])
+	print("---------\nTurn %d started with Player %d (%s)" % [turn, current_player.id, current_player.player_type])
+
+
+func _on_turn_matchup(current_player: Player, target: Player) -> void:
+	if !OS.is_debug_build():
+		return
+	print("Current Player %d (%s) hand: %s" % [current_player.id, current_player.player_type, current_player.hand_to_string(current_player.hand)])
+	print("Target Player %d (%s) hand: %s" % [target.id, target.player_type, target.hand_to_string(target.hand)])
 
 
 func _on_trade_proposed(from: Player, to: Player, card: int) -> void:
