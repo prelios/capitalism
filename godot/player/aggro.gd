@@ -39,7 +39,7 @@ func offer_card(_target: Player) -> int:
 func return_cards(offered: int, market_stable: bool, max_value: int) -> Array[int]:
 	# If market is unstable and we have a max_value card (which will disappear),
 	# always return that card regardless of target value (we'll lose it anyway).
-	if market_stable && self.hand.has(max_value):
+	if !market_stable && self.hand.has(max_value):
 		return [max_value]
 	
 	# In other cases, defer to super

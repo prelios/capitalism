@@ -1,4 +1,4 @@
-extends Node
+extends RefCounted
 
 class_name ArrayUtils
 
@@ -32,7 +32,6 @@ static func copy_append(arr: Array, val) -> Array:
 
 static func distinct(array: Array) -> Array:
 	var unique: Array = []
-	array.sort()
 	for item in array:
 		if not unique.has(item):
 			unique.append(item)
