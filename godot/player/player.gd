@@ -1,4 +1,4 @@
-extends Node
+extends RefCounted
 
 class_name Player
 
@@ -9,7 +9,7 @@ var alive := true
 var hand: Array[int] = []
 
 
-func _init(id):
+func _init(id: int) -> void:
 	self.id = id
 	self.player_type = "DefaultPlayer SHOULD NOT EXIST"
 
