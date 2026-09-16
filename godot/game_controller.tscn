@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3 uid="uid://c21f2bck4tf7n"]
+
+[ext_resource type="Script" uid="uid://75qjidxh85hi" path="res://game/game_controller.gd" id="1_3iy47"]
+[ext_resource type="Script" uid="uid://cxa8toxl5w6g0" path="res://debug_log_panel.gd" id="2_soqow"]
+
+[node name="GameController" type="Node"]
+script = ExtResource("1_3iy47")
+
+[node name="Button" type="Button" parent="."]
+offset_right = 540.0
+offset_bottom = 126.0
+text = "Start game!"
+
+[node name="DebugLogPanel" type="Panel" parent="."]
+offset_left = 1.0
+offset_top = 125.0
+offset_right = 1148.0
+offset_bottom = 633.0
+script = ExtResource("2_soqow")
+
+[node name="DebugLog" type="Label" parent="DebugLogPanel"]
+layout_mode = 0
+offset_left = -1.0
+offset_top = 8.0
+offset_right = 1142.0
+offset_bottom = 501.0

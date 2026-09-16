@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3 uid="uid://dsym714sblflv"]
+
+[ext_resource type="Script" uid="uid://3r6co3xwsv3v" path="res://label.gd" id="1_y38sv"]
+[ext_resource type="Script" uid="uid://71f712q456he" path="res://button.gd" id="2_06tve"]
+
+[node name="Container" type="HFlowContainer"]
+layout_direction = 2
+offset_left = 27.0
+offset_top = 46.0
+offset_right = 100.0
+offset_bottom = 69.0
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+text = "Hello"
+script = ExtResource("1_y38sv")
+
+[node name="Button" type="Button" parent="."]
+layout_mode = 2
+text = "Click me"
+script = ExtResource("2_06tve")
+
+[connection signal="clicked" from="Button" to="Label" method="_on_button_clicked"]
+[connection signal="pressed" from="Button" to="Button" method="_on_button_pressed"]

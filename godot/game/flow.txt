@@ -1,0 +1,37 @@
+When you start new game (click "Start Game" button):
+	Init game model
+		create players
+		create deck
+		deal initial hands
+	Pick current player (random)
+	Start gameplay loop
+
+
+Do turn with current player
+	Different logic if Human, but let's assume all AI for now
+		Human turn basically waits for input, TBD later how this happens
+	Target selection
+		Current selects target
+	Trade
+		Current offers card to target
+		Target returns cars to current (or dies)
+	Optional: Market instability (in case of elimination - emit signal?)
+		Trigger Market instability with countdown = #alivePlayers
+	Turn ends (emit signal?)
+
+
+Post-turn processing
+	Check for game end conditions - Only in case of stable market!
+		Monopoly
+		Equilibrium
+		Boredom
+	Increase boredom crash counter if relevant
+	Check if value destruction must occur
+		Is market unstable and has countdown reached 0?
+	Check for instability due to stagnation (boredom crash counter)
+
+
+Inter-turn processing
+	Calculate next player based on current and alive players
+	Increment turn counter
+	

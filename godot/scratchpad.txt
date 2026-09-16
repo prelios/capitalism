@@ -1,0 +1,17 @@
+Trade proposed from 3 to 4: 3
+
+Pre-Trade: Turn 1 - 4/4 alive - Current 3 - Random (true): [2, 2, 4, 3]
+Players: [
+	1 - Random (true): [1, 4, 3, 3], 
+	2 - Random (true): [2, 1, 3, 4], 
+	3 - Random (true): [2, 2, 4, 3], 
+	4 - Random (true): [2, 1, 4, 1]
+]
+Post-Trade: Turn 1 - 4/4 alive - Current 3 - Random (true): [2, 2, 4, 3]
+Players: [
+	1 - Random (true): [1, 4, 3, 3], 
+	2 - Random (true): [2, 1, 3, 4], 
+	3 - Random (true): [2, 2, 4, 3], 
+	4 - Random (true): [2, 1, 4, 1]
+]
+Trade resolved between 3 <-> 4: 3 <-> [3]
