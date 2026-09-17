@@ -20,10 +20,14 @@ func play_game():
 		$DebugLogPanel._on_turn_matchup(current, target)
 		
 		# Propose trade
-		var offered_card = game.propose_trade(current, target)
-
-		# Resolve trade
-		game.resolve_trade(current, target, offered_card)
+		var offered_card := current.offer_card(target)
+		game.submit_offer(current.id, target.id, offered_card.id)
+		if game.phase == GameModel.PHASE_AWAITING_REPAYMENT:
+			var returned_cards := target.return_cards(offered_card.value, game.market_stable, game.max_value)
+			var returned_ids: Array[String] = []
+			for returned_card in returned_cards:
+				returned_ids.append(returned_card.id)
+			game.submit_repayment(target.id, returned_ids)
 		
 		# Handle instability
 		game.finalize_turn()

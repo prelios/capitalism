@@ -7,6 +7,7 @@ var fixture_card_counter := 0
 
 func _init() -> void:
 	test_seeded_card_setup_and_configuration()
+	test_offer_and_repayment_commands_are_atomic()
 	test_non_mutating_helpers_and_instability_repayment()
 	test_monopoly_precedes_pending_crash()
 	test_unstable_acquisition_resolves_one_crash()
@@ -18,7 +19,7 @@ func _init() -> void:
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 9 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 10 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -55,6 +56,25 @@ func card_values(cards_to_read: Array[Card]) -> Array[int]:
 	for card in cards_to_read:
 		values.append(card.value)
 	return values
+
+
+func card_ids(cards_to_read: Array[Card]) -> Array[String]:
+	var ids: Array[String] = []
+	for card in cards_to_read:
+		ids.append(card.id)
+	return ids
+
+
+func resolve_bot_trade(game: GameModel, actor: Player, target: Player, offered: Card) -> bool:
+	if !game.submit_offer(actor.id, target.id, offered.id):
+		return false
+	if game.phase != GameModel.PHASE_AWAITING_REPAYMENT:
+		return true
+	var returned_cards := target.return_cards(offered.value, game.market_stable, game.max_value)
+	var returned_ids: Array[String] = []
+	for card in returned_cards:
+		returned_ids.append(card.id)
+	return game.submit_repayment(target.id, returned_ids)
 
 
 func test_seeded_card_setup_and_configuration() -> void:
@@ -98,8 +118,41 @@ func test_seeded_card_setup_and_configuration() -> void:
 	suit_game.players[0].hand = [offered]
 	suit_game.players[1].hand = [returned]
 	suit_game.current_player = suit_game.players[0]
-	suit_game.resolve_trade(suit_game.players[0], suit_game.players[1], offered)
+	resolve_bot_trade(suit_game, suit_game.players[0], suit_game.players[1], offered)
 	expect(suit_game.players[1].hand.has(offered) and suit_game.players[0].hand.has(returned), "suits changed base-game trade legality")
+
+
+func test_offer_and_repayment_commands_are_atomic() -> void:
+	var game := game_for(4)
+	var actor := game.players[0]
+	var target := game.players[1]
+	var offered := Card.new("offer-3", 3, "Money")
+	var low_return := Card.new("return-1", 1, "Workers")
+	var high_return := Card.new("return-2", 2, "Hype")
+	actor.hand = [offered]
+	target.hand = [low_return, high_return]
+	game.current_player = actor
+	var actor_before := card_ids(actor.hand)
+	var target_before := card_ids(target.hand)
+	expect(!game.submit_offer(999, target.id, offered.id), "invented actor offer was accepted")
+	expect(!game.submit_offer(actor.id, actor.id, offered.id), "self-targeted offer was accepted")
+	expect(!game.submit_offer(actor.id, target.id, "invented-card"), "invented card offer was accepted")
+	expect(card_ids(actor.hand) == actor_before and card_ids(target.hand) == target_before, "invalid offer changed hands")
+
+	expect(game.submit_offer(actor.id, target.id, offered.id), "valid offer was rejected")
+	expect(game.phase == GameModel.PHASE_AWAITING_REPAYMENT and card_ids(actor.hand) == actor_before, "offer mutated state before repayment")
+	expect(!game.submit_offer(actor.id, target.id, offered.id), "repeated offer was accepted")
+	expect(!game.submit_repayment(actor.id, [low_return.id, high_return.id]), "wrong-actor repayment was accepted")
+	expect(!game.submit_repayment(target.id, []), "empty repayment was accepted")
+	expect(!game.submit_repayment(target.id, [low_return.id, low_return.id]), "duplicate repayment IDs were accepted")
+	expect(!game.submit_repayment(target.id, [low_return.id]), "insufficient repayment was accepted")
+	expect(card_ids(actor.hand) == actor_before and card_ids(target.hand) == target_before, "invalid repayment changed hands")
+	expect(game.submit_repayment(target.id, [low_return.id, high_return.id]), "legal overpayment was rejected")
+	expect(game.phase == GameModel.PHASE_TURN_RESOLVED, "accepted repayment did not resolve the turn")
+	expect(actor.hand.has(low_return) and actor.hand.has(high_return) and target.hand.has(offered), "accepted repayment did not transfer exact card identities")
+	expect(!game.submit_repayment(target.id, [low_return.id]), "repeated repayment was accepted")
+	game.finish_game("Test", [])
+	expect(!game.submit_offer(actor.id, target.id, offered.id), "post-finish offer was accepted")
 
 
 func test_non_mutating_helpers_and_instability_repayment() -> void:
@@ -126,7 +179,7 @@ func test_monopoly_precedes_pending_crash() -> void:
 	game.max_value = 4
 	game.current_player = acquirer
 	game.market_stable = false
-	game.resolve_trade(acquirer, target, acquirer.hand[0])
+	resolve_bot_trade(game, acquirer, target, acquirer.hand[0])
 	expect(game.game_finished, "last-opponent acquisition did not finish the game")
 	expect(game.market_stable == false and game.max_value == 4, "pending crash ran before monopoly")
 	expect(acquirer.has_card_value(4), "monopoly acquirer lost cards to a pending crash")
@@ -144,7 +197,7 @@ func test_unstable_acquisition_resolves_one_crash() -> void:
 	game.max_value = 3
 	game.current_player = acquirer
 	game.market_stable = false
-	game.resolve_trade(acquirer, target, acquirer.hand[0])
+	resolve_bot_trade(game, acquirer, target, acquirer.hand[0])
 	expect(!target.alive, "failed target was not acquired")
 	expect(game.market_stable and game.max_value == 2, "unstable acquisition did not resolve exactly one crash")
 	expect(!acquirer.has_card_value(3), "crash did not remove the pending value from the acquirer")
@@ -223,7 +276,7 @@ func test_boredom_trade_policy() -> void:
 	split_current.hand = cards([3])
 	split_target.hand = cards([1, 2])
 	split_game.current_player = split_current
-	split_game.resolve_trade(split_current, split_target, split_current.hand[0])
+	resolve_bot_trade(split_game, split_current, split_target, split_current.hand[0])
 	expect(split_game.boredom_counter == 1, "exact split repayment counted as a mirror trade")
 
 	var mirror_game := game_for(4)
@@ -232,7 +285,7 @@ func test_boredom_trade_policy() -> void:
 	mirror_current.hand = cards([3])
 	mirror_target.hand = cards([3])
 	mirror_game.current_player = mirror_current
-	mirror_game.resolve_trade(mirror_current, mirror_target, mirror_current.hand[0])
+	resolve_bot_trade(mirror_game, mirror_current, mirror_target, mirror_current.hand[0])
 	expect(mirror_game.boredom_counter == 2, "same-value single-card swap did not add mirror boredom")
 
 	var warning_game := game_for(4)
@@ -242,7 +295,7 @@ func test_boredom_trade_policy() -> void:
 	warning_target.hand = cards([2])
 	warning_game.current_player = warning_current
 	warning_game.market_stable = false
-	warning_game.resolve_trade(warning_current, warning_target, warning_current.hand[0])
+	resolve_bot_trade(warning_game, warning_current, warning_target, warning_current.hand[0])
 	expect(warning_game.boredom_counter == 0, "warning-phase trade accumulated boredom")
 
 
@@ -252,6 +305,7 @@ func test_fixed_seat_turn_traversal() -> void:
 	game.turn_started.connect(func(_turn: int, player: Player) -> void: started.append(player.id))
 	game.current_player = game.players[2]
 	game.start_next_turn()
+	game.phase = GameModel.PHASE_TURN_RESOLVED
 	game.end_turn()
 	game.players[2].die()
 	game.start_next_turn()
@@ -266,8 +320,8 @@ func run_seeded_smoke(player_count: int, run_seed: int) -> void:
 		game.start_next_turn()
 		var current := game.current_player
 		var target := current.choose_target(game.alive_players())
-		var offered := game.propose_trade(current, target)
-		game.resolve_trade(current, target, offered)
+		var offered := current.offer_card(target)
+		resolve_bot_trade(game, current, target, offered)
 		game.finalize_turn()
 		game.check_game_end()
 		game.end_turn()

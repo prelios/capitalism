@@ -14,6 +14,10 @@ signal game_over(ending: String, winners: Array[Player])
 
 const CARDS_PER_PLAYER := 4
 const BOREDOM_MULTIPLIER := 10
+const PHASE_AWAITING_OFFER := "awaiting_offer"
+const PHASE_AWAITING_REPAYMENT := "awaiting_repayment"
+const PHASE_TURN_RESOLVED := "turn_resolved"
+const PHASE_FINISHED := "finished"
 
 
 var config: MatchConfig
@@ -24,6 +28,9 @@ var players: Array[Player] = []
 var max_value: int
 var turn_counter := 1
 var current_player: Player = null
+var phase := PHASE_AWAITING_OFFER
+var pending_trade: PendingTrade = null
+var last_rejection := ""
 var boredom_counter := 0
 var countdown_to_destruction := -1
 var warning_turns_per_survivor: int
@@ -107,6 +114,9 @@ func start_next_turn() -> void:
 	if current_player == null:
 		finish_game("Global Economic Meltdown", [])
 		return
+	phase = PHASE_AWAITING_OFFER
+	pending_trade = null
+	last_rejection = ""
 	turn_started.emit(turn_counter, current_player)
 
 
@@ -124,36 +134,67 @@ func select_next_player() -> void:
 	current_player = null
 
 
-func propose_trade(current: Player, target: Player) -> Card:
-	if game_finished or current != current_player or !current.alive or target == null or !target.alive or target == current:
-		return null
-	var offered_card := current.offer_card(target)
-	if !current.hand.has(offered_card):
-		return null
-	trade_proposed.emit(current, target, offered_card)
-	return offered_card
-
-
-func resolve_trade(current: Player, target: Player, offered_card: Card) -> void:
-	if game_finished or current != current_player or !current.alive or target == null or !target.alive or target == current or !current.hand.has(offered_card):
-		return
+func submit_offer(actor_id: int, target_id: int, card_id: String) -> bool:
+	if phase != PHASE_AWAITING_OFFER:
+		return reject("An offer is not expected in the current phase.")
+	var actor := player_by_id(actor_id)
+	var target := player_by_id(target_id)
+	if actor == null or target == null or actor != current_player or !actor.alive or !target.alive or actor == target:
+		return reject("Offer actor or target is invalid.")
+	var offered_card := card_owned_by(actor, card_id)
+	if offered_card == null:
+		return reject("Offered card is not owned by the actor.")
+	pending_trade = PendingTrade.new(actor_id, target_id, offered_card)
+	trade_proposed.emit(actor, target, offered_card)
 	if target.can_return(offered_card.value):
-		var returned_cards := target.return_cards(offered_card.value, market_stable, max_value)
-		if Player.cards_value(returned_cards) < offered_card.value:
-			return
-		for card in returned_cards:
-			target.hand.erase(card)
-		target.hand.append(offered_card)
-		current.hand.erase(offered_card)
-		current.hand.append_array(returned_cards)
-		if market_stable:
-			boredom_counter += 1
-			if returned_cards.size() == 1 and returned_cards[0].value == offered_card.value:
-				boredom_counter += 1
-		trade_resolved.emit(current, target, offered_card, returned_cards)
-		return
+		phase = PHASE_AWAITING_REPAYMENT
+		return true
+	resolve_acquisition(actor, target)
+	return true
 
-	current.hand.append_array(target.hand)
+
+func submit_repayment(target_id: int, selected_card_ids: Array[String]) -> bool:
+	if phase != PHASE_AWAITING_REPAYMENT or pending_trade == null:
+		return reject("A repayment is not expected in the current phase.")
+	if target_id != pending_trade.target_id:
+		return reject("Repayment came from the wrong target.")
+	if selected_card_ids.is_empty() or selected_card_ids.size() != ArrayUtils.distinct(selected_card_ids).size():
+		return reject("Repayment must select one or more distinct cards.")
+	var actor := player_by_id(pending_trade.actor_id)
+	var target := player_by_id(target_id)
+	if actor == null or target == null or !actor.alive or !target.alive:
+		return reject("Repayment participants are no longer valid.")
+	var returned_cards: Array[Card] = []
+	for card_id in selected_card_ids:
+		var card := card_owned_by(target, card_id)
+		if card == null:
+			return reject("Repayment contains a card not owned by the target.")
+		returned_cards.append(card)
+	if Player.cards_value(returned_cards) < pending_trade.offered_card.value:
+		return reject("Repayment total is below the offered value.")
+	resolve_successful_trade(actor, target, pending_trade.offered_card, returned_cards)
+	return true
+
+
+func resolve_successful_trade(actor: Player, target: Player, offered_card: Card, returned_cards: Array[Card]) -> void:
+	phase = PHASE_TURN_RESOLVED
+	for card in returned_cards:
+		target.hand.erase(card)
+	target.hand.append(offered_card)
+	actor.hand.erase(offered_card)
+	actor.hand.append_array(returned_cards)
+	if market_stable:
+		boredom_counter += 1
+		if returned_cards.size() == 1 and returned_cards[0].value == offered_card.value:
+			boredom_counter += 1
+	trade_resolved.emit(actor, target, offered_card, returned_cards)
+	pending_trade = null
+
+
+func resolve_acquisition(actor: Player, target: Player) -> void:
+	phase = PHASE_TURN_RESOLVED
+	pending_trade = null
+	actor.hand.append_array(target.hand)
 	target.die()
 	player_eliminated.emit(target)
 	if check_game_end():
@@ -162,6 +203,25 @@ func resolve_trade(current: Player, target: Player, offered_card: Card) -> void:
 		destabilize_market()
 	else:
 		destroy_value()
+
+
+func reject(reason: String) -> bool:
+	last_rejection = reason
+	return false
+
+
+func player_by_id(player_id: int) -> Player:
+	for player in players:
+		if player.id == player_id:
+			return player
+	return null
+
+
+func card_owned_by(player: Player, card_id: String) -> Card:
+	for card in player.hand:
+		if card.id == card_id:
+			return card
+	return null
 
 
 func finalize_turn() -> void:
@@ -178,7 +238,7 @@ func finalize_turn() -> void:
 
 
 func end_turn() -> void:
-	if game_finished:
+	if game_finished or phase != PHASE_TURN_RESOLVED:
 		return
 	turn_counter += 1
 
@@ -254,6 +314,8 @@ func finish_game(ending: String, winners: Array[Player]) -> void:
 	if game_finished:
 		return
 	game_finished = true
+	phase = PHASE_FINISHED
+	pending_trade = null
 	game_over.emit(ending, winners)
 
 
