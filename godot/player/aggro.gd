@@ -30,17 +30,19 @@ func choose_target(players: Array[Player]) -> Player:
 
 
 # Offer highest card that's in our hand, always
-func offer_card(_target: Player) -> int:
-	var sorted_hand = ArrayUtils.distinct(self.hand)
-	sorted_hand.sort()
-	return sorted_hand.pop_back()
+func offer_card(_target: Player) -> Card:
+	var highest := hand[0]
+	for card in hand:
+		if card.value > highest.value:
+			highest = card
+	return highest
 
 
-func return_cards(offered: int, market_stable: bool, max_value: int) -> Array[int]:
+func return_cards(offered: int, market_stable: bool, max_value: int) -> Array[Card]:
 	# If market is unstable and we have a max_value card (which will disappear),
 	# always return that card regardless of target value (we'll lose it anyway).
-	if !market_stable && self.hand.has(max_value):
-		return [max_value]
+	if !market_stable && has_card_value(max_value):
+		return [first_card_with_value(max_value)]
 	
 	# In other cases, defer to super
 	return super.return_cards(offered, market_stable, max_value)

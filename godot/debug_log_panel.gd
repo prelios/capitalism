@@ -18,7 +18,7 @@ func _on_turn_matchup(current_player: Player, target: Player) -> void:
 	print("Target Player %d (%s) hand: %s" % [target.id, target.player_type, target.hand_to_string(target.hand)])
 
 
-func _on_trade_proposed(from: Player, to: Player, card: int) -> void:
+func _on_trade_proposed(_from: Player, _to: Player, _card: Card) -> void:
 	return
 #	print("Trade proposed from {from} to {to}: {card}".format({
 #		"from": from.id,
@@ -27,12 +27,12 @@ func _on_trade_proposed(from: Player, to: Player, card: int) -> void:
 #	}))
 
 
-func _on_trade_resolved(from: Player, to: Player, offered: int, received: Array[int]) -> void:
+func _on_trade_resolved(from: Player, to: Player, offered: Card, received: Array[Card]) -> void:
 	print("Trade resolved between {from} <-> {to}: {offered} <-> {returned}".format({
 		"from": from.id,
 		"to": to.id,
-		"offered": offered,
-		"returned": received
+		"offered": offered.value,
+		"returned": Player.hand_to_string(received)
 	}))
 
 

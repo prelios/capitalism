@@ -65,6 +65,5 @@ func connect_game() -> void:
 
 
 func setup_game() -> void:
-	# Init game model
-	self.game = GameModel.new(NUM_PLAYERS)
+	self.game = GameModel.new(MatchConfig.for_player_count(NUM_PLAYERS, 1))
 	

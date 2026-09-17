@@ -20,11 +20,11 @@ func choose_target(players: Array[Player]):
 			continue
 		
 		# If our entire hand is contained in the target hand, they should be skipped (can always match-return)
-		if ArrayUtils.contains_all(p.hand, ArrayUtils.distinct(self.hand)):
+		if has_all_card_values(p):
 			continue
 		
 		# Weakest player is chosen based on total card value
-		if weakest == null || ArrayUtils.sum_array(p.hand) < ArrayUtils.sum_array(weakest.hand):
+		if weakest == null || p.hand_value() < weakest.hand_value():
 			weakest = p
 	
 	
@@ -36,11 +36,18 @@ func choose_target(players: Array[Player]):
 		return super.choose_target(players)
 
 
-func return_cards(offered: int, market_stable: bool, max_value: int) -> Array[int]:
+func return_cards(offered: int, market_stable: bool, max_value: int) -> Array[Card]:
 	# If market is unstable and we have a max_value card (which will disappear),
 	# always return that card regardless of target value (we'll lose it anyway).
-	if !market_stable && self.hand.has(max_value):
-		return [max_value]
+	if !market_stable && has_card_value(max_value):
+		return [first_card_with_value(max_value)]
 	
 	# In other cases, defer to super
 	return super.return_cards(offered, market_stable, max_value)
+
+
+func has_all_card_values(target: Player) -> bool:
+	for card in hand:
+		if !target.has_card_value(card.value):
+			return false
+	return true

@@ -4,8 +4,8 @@ class_name GameModel
 
 
 signal turn_started(turn: int, player: Player)
-signal trade_proposed(from: Player, to: Player, card: int)
-signal trade_resolved(from: Player, to: Player, offered: int, received: Array[int])
+signal trade_proposed(from: Player, to: Player, card: Card)
+signal trade_resolved(from: Player, to: Player, offered: Card, received: Array[Card])
 signal player_eliminated(player: Player)
 signal market_unstable(turns_remaining: int)
 signal market_value_destruction(value: int)
@@ -16,49 +16,70 @@ const CARDS_PER_PLAYER := 4
 const BOREDOM_MULTIPLIER := 10
 
 
+var config: MatchConfig
+var configuration_error := ""
+var rng := RandomNumberGenerator.new()
 var player_types: Array[String]
-var players: Array[Player]
+var players: Array[Player] = []
 var max_value: int
 var turn_counter := 1
 var current_player: Player = null
 var boredom_counter := 0
 var countdown_to_destruction := -1
 var warning_turns_per_survivor: int
+var boredom_multiplier: int
 var market_stable := true
 var game_finished := false
 
 
-func _init(num_players: int, configured_warning_turns_per_survivor := 1) -> void:
+func _init(configuration: MatchConfig) -> void:
+	config = configuration.duplicate() as MatchConfig
+	configuration_error = config.validation_error()
+	if !configuration_error.is_empty():
+		game_finished = true
+		return
+	rng.seed = config.rng_seed
 	player_types = create_player_types()
-	players = create_players(num_players)
-	deal_cards(create_deck(num_players), players)
-	max_value = num_players
-	warning_turns_per_survivor = max(1, configured_warning_turns_per_survivor)
+	players = create_players(config.player_count)
+	deal_cards(create_deck(), players)
+	max_value = config.player_count
+	warning_turns_per_survivor = config.warning_turns_per_survivor
+	boredom_multiplier = config.boredom_multiplier
 
 
 func create_player_types() -> Array[String]:
 	return ["Random", "Aggro", "Scared", "OptiHigh", "OptiLow", "OptiRand"]
 
 
-func create_deck(num_players: int) -> Array[int]:
-	var deck: Array[int] = []
-	for value in range(1, num_players + 1):
-		for copy in range(CARDS_PER_PLAYER):
-			deck.append(value)
+func create_deck() -> Array[Card]:
+	var deck: Array[Card] = []
+	for value in range(1, config.player_count + 1):
+		for suit in Card.SUITS:
+			deck.append(Card.new("%d-%s" % [value, suit.to_lower()], value, suit))
 	return deck
 
 
-func deal_cards(deck: Array[int], recipients: Array[Player]) -> void:
-	deck.shuffle()
+func deal_cards(deck: Array[Card], recipients: Array[Player]) -> void:
+	shuffle_cards(deck)
 	for player in recipients:
-		for card in CARDS_PER_PLAYER:
+		for _card in CARDS_PER_PLAYER:
 			player.hand.append(deck.pop_front())
+
+
+func shuffle_cards(cards: Array[Card]) -> void:
+	for index in range(cards.size() - 1, 0, -1):
+		var swap_index := rng.randi_range(0, index)
+		var swap_card := cards[index]
+		cards[index] = cards[swap_index]
+		cards[swap_index] = swap_card
 
 
 func create_players(num_players: int) -> Array[Player]:
 	var created_players: Array[Player] = []
 	for player_id in range(1, num_players + 1):
-		created_players.append(create_player(player_id, player_types.pick_random()))
+		var player := create_player(player_id, player_types[rng.randi_range(0, player_types.size() - 1)])
+		player.rng = rng
+		created_players.append(player)
 	return created_players
 
 
@@ -73,7 +94,7 @@ func create_player(id: int, player_type: String) -> Player:
 
 
 func pick_starting_player() -> void:
-	current_player = players.pick_random()
+	current_player = players[rng.randi_range(0, players.size() - 1)]
 
 
 func start_next_turn() -> void:
@@ -103,22 +124,22 @@ func select_next_player() -> void:
 	current_player = null
 
 
-func propose_trade(current: Player, target: Player) -> int:
+func propose_trade(current: Player, target: Player) -> Card:
 	if game_finished or current != current_player or !current.alive or target == null or !target.alive or target == current:
-		return -1
+		return null
 	var offered_card := current.offer_card(target)
 	if !current.hand.has(offered_card):
-		return -1
+		return null
 	trade_proposed.emit(current, target, offered_card)
 	return offered_card
 
 
-func resolve_trade(current: Player, target: Player, offered_card: int) -> void:
+func resolve_trade(current: Player, target: Player, offered_card: Card) -> void:
 	if game_finished or current != current_player or !current.alive or target == null or !target.alive or target == current or !current.hand.has(offered_card):
 		return
-	if target.can_return(offered_card):
-		var returned_cards := target.return_cards(offered_card, market_stable, max_value)
-		if ArrayUtils.sum_array(returned_cards) < offered_card:
+	if target.can_return(offered_card.value):
+		var returned_cards := target.return_cards(offered_card.value, market_stable, max_value)
+		if Player.cards_value(returned_cards) < offered_card.value:
 			return
 		for card in returned_cards:
 			target.hand.erase(card)
@@ -127,7 +148,7 @@ func resolve_trade(current: Player, target: Player, offered_card: int) -> void:
 		current.hand.append_array(returned_cards)
 		if market_stable:
 			boredom_counter += 1
-			if returned_cards.size() == 1 and returned_cards[0] == offered_card:
+			if returned_cards.size() == 1 and returned_cards[0].value == offered_card.value:
 				boredom_counter += 1
 		trade_resolved.emit(current, target, offered_card, returned_cards)
 		return
@@ -151,7 +172,7 @@ func finalize_turn() -> void:
 		return
 	if check_game_end():
 		return
-	if boredom_counter > BOREDOM_MULTIPLIER * alive_players().size():
+	if boredom_counter > boredom_multiplier * alive_players().size():
 		destabilize_market()
 		advance_warning()
 
@@ -184,7 +205,7 @@ func destroy_value() -> void:
 	var destroyed_value := max_value
 	market_value_destruction.emit(destroyed_value)
 	for player in players:
-		ArrayUtils.erase_multiple(player.hand, destroyed_value)
+		player.remove_cards_with_value(destroyed_value)
 	max_value -= 1
 	var bankrupt_players: Array[Player] = []
 	for player in alive_players():
@@ -224,7 +245,7 @@ func is_duopoly_equilibrium(alive: Array[Player]) -> bool:
 		return false
 	for player in alive:
 		for value in range(1, max_value + 1):
-			if !player.hand.has(value):
+			if !player.has_card_value(value):
 				return false
 	return true
 

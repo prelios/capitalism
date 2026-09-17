@@ -2,9 +2,11 @@ extends SceneTree
 
 
 var failures: Array[String] = []
+var fixture_card_counter := 0
 
 
 func _init() -> void:
+	test_seeded_card_setup_and_configuration()
 	test_non_mutating_helpers_and_instability_repayment()
 	test_monopoly_precedes_pending_crash()
 	test_unstable_acquisition_resolves_one_crash()
@@ -16,7 +18,7 @@ func _init() -> void:
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 8 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 9 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -29,6 +31,77 @@ func expect(condition: bool, message: String) -> void:
 		failures.append(message)
 
 
+func game_for(player_count: int, seed_value := 1) -> GameModel:
+	return GameModel.new(MatchConfig.for_player_count(player_count, seed_value))
+
+
+func two_player_game() -> GameModel:
+	var game := game_for(4)
+	game.players[2].die()
+	game.players[3].die()
+	return game
+
+
+func cards(values: Array[int]) -> Array[Card]:
+	var result: Array[Card] = []
+	for value in values:
+		fixture_card_counter += 1
+		result.append(Card.new("fixture-%d" % fixture_card_counter, value, Card.SUITS[fixture_card_counter % Card.SUITS.size()]))
+	return result
+
+
+func card_values(cards_to_read: Array[Card]) -> Array[int]:
+	var values: Array[int] = []
+	for card in cards_to_read:
+		values.append(card.value)
+	return values
+
+
+func test_seeded_card_setup_and_configuration() -> void:
+	var first := game_for(4, 42)
+	var second := game_for(4, 42)
+	var first_order: Array[String] = []
+	var second_order: Array[String] = []
+	var ids: Array[String] = []
+	for player_index in range(4):
+		expect(first.players[player_index].hand.size() == 4, "setup did not deal four cards to player %d" % (player_index + 1))
+		expect(first.players[player_index].seat == player_index + 1, "setup did not preserve fixed seat identity")
+		expect(first.players[player_index].company_id == "company-%d" % (player_index + 1), "setup did not preserve company identity")
+		for card in first.players[player_index].hand:
+			first_order.append(card.id)
+			ids.append(card.id)
+			expect(card.value >= 1 and card.value <= 4, "setup created an invalid card value")
+			expect(Card.SUITS.has(card.suit), "setup did not preserve a valid suit")
+		for card in second.players[player_index].hand:
+			second_order.append(card.id)
+	expect(first_order == second_order, "same configuration and seed produced different deals")
+	expect(ArrayUtils.distinct(ids).size() == 16, "setup did not create unique card IDs")
+	for value in range(1, 5):
+		var suits: Array[String] = []
+		for player in first.players:
+			for card in player.hand:
+				if card.value == value:
+					suits.append(card.suit)
+		expect(ArrayUtils.distinct(suits).size() == Card.SUITS.size(), "value %d did not have one card of each suit" % value)
+
+	var source_config := MatchConfig.for_player_count(4, 7)
+	var copied_config_game := GameModel.new(source_config)
+	source_config.player_count = 10
+	expect(copied_config_game.config.player_count == 4, "match retained mutable shared configuration")
+	var invalid_config := MatchConfig.for_player_count(3, 1)
+	var rejected_game := GameModel.new(invalid_config)
+	expect(!invalid_config.is_valid() and !rejected_game.configuration_error.is_empty(), "invalid player count was not rejected explicitly")
+
+	var suit_game := game_for(4)
+	var offered := Card.new("money-3", 3, "Money")
+	var returned := Card.new("hype-3", 3, "Hype")
+	suit_game.players[0].hand = [offered]
+	suit_game.players[1].hand = [returned]
+	suit_game.current_player = suit_game.players[0]
+	suit_game.resolve_trade(suit_game.players[0], suit_game.players[1], offered)
+	expect(suit_game.players[1].hand.has(offered) and suit_game.players[0].hand.has(returned), "suits changed base-game trade legality")
+
+
 func test_non_mutating_helpers_and_instability_repayment() -> void:
 	var hand: Array[int] = [4, 1, 4]
 	var original_hand := hand.duplicate()
@@ -37,51 +110,54 @@ func test_non_mutating_helpers_and_instability_repayment() -> void:
 	expect(unique == [4, 1], "distinct() did not preserve first-seen order")
 	var bots: Array[Player] = [AggroPlayer.new(1), ScaredPlayer.new(1), OptimalPlayer.new(1)]
 	for bot in bots:
-		bot.hand = [1, 4]
-		expect(bot.return_cards(1, true, 4) == [1], "%s discarded during a stable market" % bot.player_type)
-		expect(bot.return_cards(1, false, 4) == [4], "%s did not discard during an unstable market" % bot.player_type)
-		expect(bot.hand == [1, 4], "%s repayment selection mutated its hand" % bot.player_type)
+		bot.rng = RandomNumberGenerator.new()
+		bot.hand = cards([1, 4])
+		expect(card_values(bot.return_cards(1, true, 4)) == [1], "%s discarded during a stable market" % bot.player_type)
+		expect(card_values(bot.return_cards(1, false, 4)) == [4], "%s did not discard during an unstable market" % bot.player_type)
+		expect(card_values(bot.hand) == [1, 4], "%s repayment selection mutated its hand" % bot.player_type)
 
 
 func test_monopoly_precedes_pending_crash() -> void:
-	var game := GameModel.new(2)
+	var game := two_player_game()
 	var acquirer := game.players[0]
 	var target := game.players[1]
-	acquirer.hand = [4]
-	target.hand = [1]
+	acquirer.hand = cards([4])
+	target.hand = cards([1])
 	game.max_value = 4
 	game.current_player = acquirer
 	game.market_stable = false
-	game.resolve_trade(acquirer, target, 4)
+	game.resolve_trade(acquirer, target, acquirer.hand[0])
 	expect(game.game_finished, "last-opponent acquisition did not finish the game")
 	expect(game.market_stable == false and game.max_value == 4, "pending crash ran before monopoly")
-	expect(acquirer.hand.has(4), "monopoly acquirer lost cards to a pending crash")
+	expect(acquirer.has_card_value(4), "monopoly acquirer lost cards to a pending crash")
 
 
 func test_unstable_acquisition_resolves_one_crash() -> void:
-	var game := GameModel.new(3)
+	var game := game_for(4)
 	var acquirer := game.players[0]
 	var target := game.players[1]
 	var survivor := game.players[2]
-	acquirer.hand = [3]
-	target.hand = [1]
-	survivor.hand = [2]
+	acquirer.hand = cards([3])
+	target.hand = cards([1])
+	survivor.hand = cards([2])
+	game.players[3].die()
 	game.max_value = 3
 	game.current_player = acquirer
 	game.market_stable = false
-	game.resolve_trade(acquirer, target, 3)
+	game.resolve_trade(acquirer, target, acquirer.hand[0])
 	expect(!target.alive, "failed target was not acquired")
 	expect(game.market_stable and game.max_value == 2, "unstable acquisition did not resolve exactly one crash")
-	expect(!acquirer.hand.has(3), "crash did not remove the pending value from the acquirer")
+	expect(!acquirer.has_card_value(3), "crash did not remove the pending value from the acquirer")
 	expect(!game.game_finished, "non-final unstable acquisition ended the game")
 
 
 func test_simultaneous_bankruptcy_ends_in_meltdown() -> void:
-	var game := GameModel.new(3)
+	var game := game_for(4)
 	var endings: Array[String] = []
 	game.game_over.connect(func(ending: String, _winners: Array[Player]) -> void: endings.append(ending))
 	for player in game.players:
-		player.hand = [3]
+		player.hand = cards([3])
+	game.players[3].die()
 	game.max_value = 3
 	game.market_stable = false
 	game.destroy_value()
@@ -96,82 +172,82 @@ func test_simultaneous_bankruptcy_ends_in_meltdown() -> void:
 
 
 func test_stable_two_player_duopoly() -> void:
-	var game := GameModel.new(2)
+	var game := two_player_game()
 	var winners: Array[int] = []
 	game.game_over.connect(func(_ending: String, result: Array[Player]) -> void:
 		for player in result:
 			winners.append(player.id)
 	)
-	game.players[0].hand = [1, 2]
-	game.players[1].hand = [1, 2]
+	game.players[0].hand = cards([1, 2])
+	game.players[1].hand = cards([1, 2])
 	game.max_value = 2
 	expect(game.check_game_end(), "stable two-player equilibrium did not end the game")
 	expect(game.game_finished and winners == [1, 2], "duopoly did not declare both survivors as winners")
 
-	var unstable_game := GameModel.new(2)
-	unstable_game.players[0].hand = [1, 2]
-	unstable_game.players[1].hand = [1, 2]
+	var unstable_game := two_player_game()
+	unstable_game.players[0].hand = cards([1, 2])
+	unstable_game.players[1].hand = cards([1, 2])
 	unstable_game.max_value = 2
 	unstable_game.market_stable = false
 	expect(!unstable_game.check_game_end(), "unstable two-player market ended as a duopoly")
 
-	var incomplete_game := GameModel.new(2)
-	incomplete_game.players[0].hand = [1, 3]
-	incomplete_game.players[1].hand = [1, 2]
+	var incomplete_game := two_player_game()
+	incomplete_game.players[0].hand = cards([1, 3])
+	incomplete_game.players[1].hand = cards([1, 2])
 	incomplete_game.max_value = 2
 	expect(!incomplete_game.check_game_end(), "missing active value ended as a duopoly")
 
 
 func test_warning_timing_uses_completed_turns() -> void:
-	var game := GameModel.new(4)
+	var game := game_for(4)
 	var announced_counts: Array[int] = []
 	game.market_unstable.connect(func(count: int) -> void: announced_counts.append(count))
 	for player in game.players:
-		player.hand = [1, 2, 3, 4]
+		player.hand = cards([1, 2, 3, 4])
 	game.destabilize_market()
 	for _turn in range(4):
 		game.finalize_turn()
 	expect(announced_counts == [4, 3, 2, 1], "warning did not count each completed turn from the trigger")
 	expect(game.market_stable and game.max_value == 3, "warning did not resolve the crash when its count reached zero")
 
-	var boredom_game := GameModel.new(3)
+	var boredom_game := game_for(4)
 	boredom_game.boredom_counter = boredom_game.BOREDOM_MULTIPLIER * boredom_game.alive_players().size() + 1
 	boredom_game.finalize_turn()
-	expect(!boredom_game.market_stable and boredom_game.countdown_to_destruction == 2, "boredom warning did not count its triggering turn")
+	expect(!boredom_game.market_stable and boredom_game.countdown_to_destruction == 3, "boredom warning did not count its triggering turn")
 
 
 func test_boredom_trade_policy() -> void:
-	var split_game := GameModel.new(3)
+	var split_game := game_for(4)
 	var split_current := split_game.players[0]
 	var split_target := split_game.players[1]
-	split_current.hand = [3]
-	split_target.hand = [1, 2]
+	split_current.hand = cards([3])
+	split_target.hand = cards([1, 2])
 	split_game.current_player = split_current
-	split_game.resolve_trade(split_current, split_target, 3)
+	split_game.resolve_trade(split_current, split_target, split_current.hand[0])
 	expect(split_game.boredom_counter == 1, "exact split repayment counted as a mirror trade")
 
-	var mirror_game := GameModel.new(3)
+	var mirror_game := game_for(4)
 	var mirror_current := mirror_game.players[0]
 	var mirror_target := mirror_game.players[1]
-	mirror_current.hand = [3]
-	mirror_target.hand = [3]
+	mirror_current.hand = cards([3])
+	mirror_target.hand = cards([3])
 	mirror_game.current_player = mirror_current
-	mirror_game.resolve_trade(mirror_current, mirror_target, 3)
+	mirror_game.resolve_trade(mirror_current, mirror_target, mirror_current.hand[0])
 	expect(mirror_game.boredom_counter == 2, "same-value single-card swap did not add mirror boredom")
 
-	var warning_game := GameModel.new(3)
+	var warning_game := game_for(4)
 	var warning_current := warning_game.players[0]
 	var warning_target := warning_game.players[1]
-	warning_current.hand = [2]
-	warning_target.hand = [2]
+	warning_current.hand = cards([2])
+	warning_target.hand = cards([2])
 	warning_game.current_player = warning_current
 	warning_game.market_stable = false
-	warning_game.resolve_trade(warning_current, warning_target, 2)
+	warning_game.resolve_trade(warning_current, warning_target, warning_current.hand[0])
 	expect(warning_game.boredom_counter == 0, "warning-phase trade accumulated boredom")
 
 
 func test_fixed_seat_turn_traversal() -> void:
-	var game := GameModel.new(4)
+	var game := game_for(4)
 	var started: Array[int] = []
 	game.turn_started.connect(func(_turn: int, player: Player) -> void: started.append(player.id))
 	game.current_player = game.players[2]
@@ -183,8 +259,7 @@ func test_fixed_seat_turn_traversal() -> void:
 
 
 func run_seeded_smoke(player_count: int, run_seed: int) -> void:
-	seed(run_seed)
-	var game := GameModel.new(player_count)
+	var game := game_for(player_count, run_seed)
 	game.pick_starting_player()
 	var cap := 5000
 	while !game.game_finished and game.turn_counter <= cap:
@@ -201,4 +276,4 @@ func run_seeded_smoke(player_count: int, run_seed: int) -> void:
 		expect(game.game_finished and (game.alive_players().size() <= 2), "%d-player smoke ended with an invalid survivor count" % player_count)
 		for player in game.alive_players():
 			for card in player.hand:
-				expect(card > 0, "%d-player smoke retained a non-positive active card" % player_count)
+				expect(card.value > 0, "%d-player smoke retained a non-positive active card" % player_count)
