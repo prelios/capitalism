@@ -179,6 +179,7 @@ func test_monopoly_precedes_pending_crash() -> void:
 	game.max_value = 4
 	game.current_player = acquirer
 	game.market_stable = false
+	game.unstable_value = 4
 	resolve_bot_trade(game, acquirer, target, acquirer.hand[0])
 	expect(game.game_finished, "last-opponent acquisition did not finish the game")
 	expect(game.market_stable == false and game.max_value == 4, "pending crash ran before monopoly")
@@ -197,6 +198,7 @@ func test_unstable_acquisition_resolves_one_crash() -> void:
 	game.max_value = 3
 	game.current_player = acquirer
 	game.market_stable = false
+	game.unstable_value = 3
 	resolve_bot_trade(game, acquirer, target, acquirer.hand[0])
 	expect(!target.alive, "failed target was not acquired")
 	expect(game.market_stable and game.max_value == 2, "unstable acquisition did not resolve exactly one crash")
@@ -213,6 +215,7 @@ func test_simultaneous_bankruptcy_ends_in_meltdown() -> void:
 	game.players[3].die()
 	game.max_value = 3
 	game.market_stable = false
+	game.unstable_value = 3
 	game.destroy_value()
 	expect(game.game_finished, "all-player crash did not finish the game")
 	expect(game.alive_players().is_empty(), "all-player crash left a survivor")
@@ -322,9 +325,7 @@ func run_seeded_smoke(player_count: int, run_seed: int) -> void:
 		var target := current.choose_target(game.alive_players())
 		var offered := current.offer_card(target)
 		resolve_bot_trade(game, current, target, offered)
-		game.finalize_turn()
-		game.check_game_end()
-		game.end_turn()
+		game.complete_turn()
 	expect(game.game_finished, "%d-player smoke seed %d hit diagnostic cap %d" % [player_count, run_seed, cap])
 	if game.game_finished:
 		expect(game.game_finished and (game.alive_players().size() <= 2), "%d-player smoke ended with an invalid survivor count" % player_count)

@@ -33,6 +33,7 @@ var pending_trade: PendingTrade = null
 var last_rejection := ""
 var boredom_counter := 0
 var countdown_to_destruction := -1
+var unstable_value := -1
 var warning_turns_per_survivor: int
 var boredom_multiplier: int
 var market_stable := true
@@ -237,6 +238,16 @@ func finalize_turn() -> void:
 		advance_warning()
 
 
+func complete_turn() -> bool:
+	if game_finished or phase != PHASE_TURN_RESOLVED:
+		return false
+	finalize_turn()
+	if game_finished:
+		return true
+	end_turn()
+	return true
+
+
 func end_turn() -> void:
 	if game_finished or phase != PHASE_TURN_RESOLVED:
 		return
@@ -248,6 +259,10 @@ func destabilize_market() -> void:
 		return
 	boredom_counter = 0
 	market_stable = false
+	unstable_value = highest_active_value()
+	if unstable_value <= 0:
+		check_game_end()
+		return
 	countdown_to_destruction = alive_players().size() * warning_turns_per_survivor
 
 
@@ -262,11 +277,13 @@ func advance_warning() -> void:
 func destroy_value() -> void:
 	if game_finished or market_stable:
 		return
-	var destroyed_value := max_value
+	var destroyed_value := unstable_value
+	if destroyed_value <= 0:
+		return
 	market_value_destruction.emit(destroyed_value)
 	for player in players:
 		player.remove_cards_with_value(destroyed_value)
-	max_value -= 1
+	max_value = highest_active_value()
 	var bankrupt_players: Array[Player] = []
 	for player in alive_players():
 		if player.hand.is_empty():
@@ -282,6 +299,7 @@ func stabilize_market() -> void:
 	market_stable = true
 	boredom_counter = 0
 	countdown_to_destruction = -1
+	unstable_value = -1
 
 
 func check_game_end() -> bool:
@@ -321,6 +339,14 @@ func finish_game(ending: String, winners: Array[Player]) -> void:
 
 func alive_players() -> Array[Player]:
 	return players.filter(func(player: Player): return player.alive)
+
+
+func highest_active_value() -> int:
+	var highest := 0
+	for player in alive_players():
+		for card in player.hand:
+			highest = max(highest, card.value)
+	return highest
 
 
 func _to_string() -> String:

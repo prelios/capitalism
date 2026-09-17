@@ -29,15 +29,7 @@ func play_game():
 				returned_ids.append(returned_card.id)
 			game.submit_repayment(target.id, returned_ids)
 		
-		# Handle instability
-		game.finalize_turn()
-		
-		# Check for game-ending conditions
-		# TODO: Might move to GameModel.finalize_turn()?
-		game.check_game_end()
-		
-		# Turn ends
-		game.end_turn()
+		game.complete_turn()
 
 
 # Called when the node enters the scene tree for the first time.
