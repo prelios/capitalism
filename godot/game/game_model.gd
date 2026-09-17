@@ -38,6 +38,7 @@ var warning_turns_per_survivor: int
 var boredom_multiplier: int
 var market_stable := true
 var game_finished := false
+var _public_history: Array[Dictionary] = []
 
 
 func _init(configuration: MatchConfig) -> void:
@@ -118,6 +119,7 @@ func start_next_turn() -> void:
 	phase = PHASE_AWAITING_OFFER
 	pending_trade = null
 	last_rejection = ""
+	record_public_event("turn_started", {"turn": turn_counter, "actor_id": current_player.id})
 	turn_started.emit(turn_counter, current_player)
 
 
@@ -146,6 +148,7 @@ func submit_offer(actor_id: int, target_id: int, card_id: String) -> bool:
 	if offered_card == null:
 		return reject("Offered card is not owned by the actor.")
 	pending_trade = PendingTrade.new(actor_id, target_id, offered_card)
+	record_public_event("trade_proposed", {"actor_id": actor_id, "target_id": target_id, "card": public_card(offered_card)})
 	trade_proposed.emit(actor, target, offered_card)
 	if target.can_return(offered_card.value):
 		phase = PHASE_AWAITING_REPAYMENT
@@ -189,15 +192,19 @@ func resolve_successful_trade(actor: Player, target: Player, offered_card: Card,
 		if returned_cards.size() == 1 and returned_cards[0].value == offered_card.value:
 			boredom_counter += 1
 	trade_resolved.emit(actor, target, offered_card, returned_cards)
+	record_public_event("trade_resolved", {"actor_id": actor.id, "target_id": target.id, "offered": public_card(offered_card), "returned": public_cards(returned_cards)})
 	pending_trade = null
 
 
 func resolve_acquisition(actor: Player, target: Player) -> void:
 	phase = PHASE_TURN_RESOLVED
 	pending_trade = null
-	actor.hand.append_array(target.hand)
+	var acquired_cards := target.hand.duplicate()
+	var acquired_companies := target.owned_company_ids.duplicate()
+	actor.hand.append_array(acquired_cards)
 	actor.acquire_companies_from(target)
 	target.die()
+	record_public_event("player_acquired", {"acquirer_id": actor.id, "victim_id": target.id, "cards": public_cards(acquired_cards), "company_ids": acquired_companies})
 	player_eliminated.emit(target)
 	if check_game_end():
 		return
@@ -265,10 +272,12 @@ func destabilize_market() -> void:
 		check_game_end()
 		return
 	countdown_to_destruction = alive_players().size() * warning_turns_per_survivor
+	record_public_event("market_warning_started", {"value": unstable_value, "turns_remaining": countdown_to_destruction})
 
 
 func advance_warning() -> void:
 	boredom_counter = 0
+	record_public_event("market_warning_updated", {"value": unstable_value, "turns_remaining": countdown_to_destruction})
 	market_unstable.emit(countdown_to_destruction)
 	countdown_to_destruction -= 1
 	if countdown_to_destruction == 0:
@@ -281,7 +290,7 @@ func destroy_value() -> void:
 	var destroyed_value := unstable_value
 	if destroyed_value <= 0:
 		return
-	market_value_destruction.emit(destroyed_value)
+	var bankrupt_ids: Array[int] = []
 	for player in players:
 		player.remove_cards_with_value(destroyed_value)
 	max_value = highest_active_value()
@@ -290,10 +299,13 @@ func destroy_value() -> void:
 		if player.hand.is_empty():
 			bankrupt_players.append(player)
 	for player in bankrupt_players:
+		bankrupt_ids.append(player.id)
 		player.die()
 		player.remove_companies()
 		player_eliminated.emit(player)
 	stabilize_market()
+	record_public_event("market_crashed", {"value": destroyed_value, "bankrupt_player_ids": bankrupt_ids})
+	market_value_destruction.emit(destroyed_value)
 	check_game_end()
 
 
@@ -336,7 +348,37 @@ func finish_game(ending: String, winners: Array[Player]) -> void:
 	game_finished = true
 	phase = PHASE_FINISHED
 	pending_trade = null
+	record_public_event("game_finished", {"ending": ending, "winner_ids": winners.map(func(player: Player): return player.id)})
 	game_over.emit(ending, winners)
+
+
+func record_public_event(event_type: String, data: Dictionary) -> void:
+	_public_history.append({"sequence": _public_history.size() + 1, "type": event_type, "data": data.duplicate(true)})
+
+
+func public_history() -> Array[Dictionary]:
+	var history: Array[Dictionary] = []
+	for event in _public_history:
+		history.append(event.duplicate(true))
+	return history
+
+
+func public_snapshot() -> Dictionary:
+	var seats: Array[Dictionary] = []
+	for player in players:
+		seats.append({"player_id": player.id, "seat": player.seat, "alive": player.alive, "hand_size": player.hand.size(), "company_ids": player.owned_company_ids.duplicate()})
+	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "unstable_value": unstable_value, "turns_remaining": countdown_to_destruction, "players": seats}
+
+
+func public_card(card: Card) -> Dictionary:
+	return {"id": card.id, "value": card.value, "suit": card.suit}
+
+
+func public_cards(cards: Array[Card]) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for card in cards:
+		result.append(public_card(card))
+	return result
 
 
 func alive_players() -> Array[Player]:
