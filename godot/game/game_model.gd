@@ -125,9 +125,10 @@ func resolve_trade(current: Player, target: Player, offered_card: int) -> void:
 		target.hand.append(offered_card)
 		current.hand.erase(offered_card)
 		current.hand.append_array(returned_cards)
-		boredom_counter += 1
-		if offered_card == ArrayUtils.sum_array(returned_cards):
+		if market_stable:
 			boredom_counter += 1
+			if returned_cards.size() == 1 and returned_cards[0] == offered_card:
+				boredom_counter += 1
 		trade_resolved.emit(current, target, offered_card, returned_cards)
 		return
 

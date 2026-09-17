@@ -259,34 +259,26 @@ not a score tie.
 
 ## 10. Stagnation / boredom
 
-The digital prototype uses boredom to trigger contraction when ordinary
-trading continues too long without a significant event.
+The prototype counter is the provisional v1 contraction policy. On a
+successful trade while the market is stable, boredom increases by 1. A
+same-value, one-card-for-one-card swap adds one further point. An exact
+split repayment is not a mirror: offering 3 and receiving 1+2 adds only
+the normal point. Overpayment also adds only the normal point.
 
-Historical implementation:
+The current threshold is strictly greater than:
 
-`threshold = BOREDOM_MULTIPLIER × living_players`
+`BOREDOM_MULTIPLIER × living players`, with `BOREDOM_MULTIPLIER = 10`.
 
-with `BOREDOM_MULTIPLIER = 10`.
+The model evaluates that threshold during turn finalization. If it is
+exceeded, it starts a warning using the completed-turn timing in section 9.
+Acquisition resets boredom as it starts or resolves instability. A crash
+resets boredom after its atomic bankruptcy processing. During an active
+warning, trades do not accumulate boredom; the pending crash is the only
+market transition in progress.
 
-Conceptually:
-- Ordinary turns increase boredom.
-- Eliminations and instability/crash events reset or resolve stagnation.
-- Reaching the threshold triggers market instability.
-- This is the v1 contraction mechanism. It replaces a crude maximum-turn
-  cutoff; a simulation turn cap is diagnostic evidence of a fault, never a
-  game result.
-
-Timed instability appeared in roughly 4--20% of prior normal simulations.
-
-### Mirror/equilibrium-like trades
-
-A candidate refinement:
-- Normal completed turn: `+1 boredom`.
-- Equal-value/mirror-like trade: additional `+1 boredom`.
-
-This is intended to accelerate contraction during repetitive
-value-preserving play. **The exact modifier and definition are
-provisional.**
+This is the v1 contraction mechanism. It replaces a crude maximum-turn
+cutoff; a simulation turn cap is diagnostic evidence of a fault, never a
+game result.
 
 ### UI presentation
 
@@ -294,11 +286,22 @@ The engine may maintain an integer counter without showing that exact
 integer. Player-facing states could instead communicate stable market,
 increasing pressure, instability warning, and crash.
 
-### Alternative
+### Alternative playtest candidate: inactivity rounds
 
-A simpler alternative (pending playtesting) may be to allow 1-2 full rounds of "stable market" play.
-If, after 1-2 rounds, no elimination has occurred, the market becomes unstable.
-Playtesting will reveal if this obvious counter is better than the more hidden boredom counter.
+The alternative candidate ignores trade shape. It starts a warning after
+one or two full stable rounds without an acquisition, with the exact
+round count selected for the experiment. A round begins with the current
+living-seat order and completes once every player alive when that round
+began has either completed one turn or been eliminated; newly eliminated
+seats are skipped and do not restart the round. An acquisition resets the
+round count. Warning timing, crash, bankruptcy, monopoly, duopoly, and
+meltdown rules remain unchanged.
+
+Playtesting should compare whether players understand the counter policy
+without a visible number, whether same-card swaps feel like deliberate
+stalling, how often warnings occur, and whether either approach causes
+unproductive downtime. The counter policy remains the implemented
+provisional setting until that evidence calls for the alternative.
 
 ## 11. Equilibrium
 

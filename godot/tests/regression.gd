@@ -11,11 +11,12 @@ func _init() -> void:
 	test_simultaneous_bankruptcy_ends_in_meltdown()
 	test_stable_two_player_duopoly()
 	test_warning_timing_uses_completed_turns()
+	test_boredom_trade_policy()
 	test_fixed_seat_turn_traversal()
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 7 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 8 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -137,6 +138,36 @@ func test_warning_timing_uses_completed_turns() -> void:
 	boredom_game.boredom_counter = boredom_game.BOREDOM_MULTIPLIER * boredom_game.alive_players().size() + 1
 	boredom_game.finalize_turn()
 	expect(!boredom_game.market_stable and boredom_game.countdown_to_destruction == 2, "boredom warning did not count its triggering turn")
+
+
+func test_boredom_trade_policy() -> void:
+	var split_game := GameModel.new(3)
+	var split_current := split_game.players[0]
+	var split_target := split_game.players[1]
+	split_current.hand = [3]
+	split_target.hand = [1, 2]
+	split_game.current_player = split_current
+	split_game.resolve_trade(split_current, split_target, 3)
+	expect(split_game.boredom_counter == 1, "exact split repayment counted as a mirror trade")
+
+	var mirror_game := GameModel.new(3)
+	var mirror_current := mirror_game.players[0]
+	var mirror_target := mirror_game.players[1]
+	mirror_current.hand = [3]
+	mirror_target.hand = [3]
+	mirror_game.current_player = mirror_current
+	mirror_game.resolve_trade(mirror_current, mirror_target, 3)
+	expect(mirror_game.boredom_counter == 2, "same-value single-card swap did not add mirror boredom")
+
+	var warning_game := GameModel.new(3)
+	var warning_current := warning_game.players[0]
+	var warning_target := warning_game.players[1]
+	warning_current.hand = [2]
+	warning_target.hand = [2]
+	warning_game.current_player = warning_current
+	warning_game.market_stable = false
+	warning_game.resolve_trade(warning_current, warning_target, 2)
+	expect(warning_game.boredom_counter == 0, "warning-phase trade accumulated boredom")
 
 
 func test_fixed_seat_turn_traversal() -> void:
