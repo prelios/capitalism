@@ -9,6 +9,7 @@ func _init() -> void:
 	test_seeded_card_setup_and_configuration()
 	test_offer_and_repayment_commands_are_atomic()
 	test_company_lineage_and_public_history()
+	test_domain_invariants()
 	test_non_mutating_helpers_and_instability_repayment()
 	test_monopoly_precedes_pending_crash()
 	test_unstable_acquisition_resolves_one_crash()
@@ -20,7 +21,7 @@ func _init() -> void:
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 11 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 12 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -189,6 +190,18 @@ func test_company_lineage_and_public_history() -> void:
 	game.unstable_value = 3
 	game.destroy_value()
 	expect(acquirer.owned_company_ids.is_empty(), "bankruptcy did not remove inherited company tokens")
+
+
+func test_domain_invariants() -> void:
+	var game := game_for(4, 77)
+	expect(game.invariant_violations().is_empty(), "fresh seeded match violated domain invariants")
+	game.pick_starting_player()
+	game.start_next_turn()
+	var actor := game.current_player
+	var target := actor.choose_target(game.alive_players())
+	resolve_bot_trade(game, actor, target, actor.offer_card(target))
+	game.complete_turn()
+	expect(game.invariant_violations().is_empty(), "accepted transition violated domain invariants")
 
 
 func test_non_mutating_helpers_and_instability_repayment() -> void:
@@ -362,6 +375,8 @@ func run_seeded_smoke(player_count: int, run_seed: int) -> void:
 		var offered := current.offer_card(target)
 		resolve_bot_trade(game, current, target, offered)
 		game.complete_turn()
+		for violation in game.invariant_violations():
+			expect(false, "%d-player smoke seed %d: %s" % [player_count, run_seed, violation])
 	expect(game.game_finished, "%d-player smoke seed %d hit diagnostic cap %d" % [player_count, run_seed, cap])
 	if game.game_finished:
 		expect(game.game_finished and (game.alive_players().size() <= 2), "%d-player smoke ended with an invalid survivor count" % player_count)

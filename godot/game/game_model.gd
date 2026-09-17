@@ -393,6 +393,32 @@ func highest_active_value() -> int:
 	return highest
 
 
+func invariant_violations() -> Array[String]:
+	var violations: Array[String] = []
+	var owned_card_ids: Dictionary = {}
+	var owned_company_ids: Dictionary = {}
+	for player in players:
+		if !player.alive and !player.hand.is_empty():
+			violations.append("Eliminated player %d still owns cards." % player.id)
+		for card in player.hand:
+			if card.value <= 0:
+				violations.append("Player %d owns non-positive card %s." % [player.id, card.id])
+			if owned_card_ids.has(card.id):
+				violations.append("Card %s has multiple owners." % card.id)
+			owned_card_ids[card.id] = player.id
+		for company_id in player.owned_company_ids:
+			if owned_company_ids.has(company_id):
+				violations.append("Company %s has multiple owners." % company_id)
+			owned_company_ids[company_id] = player.id
+	if !game_finished and phase == PHASE_AWAITING_OFFER and current_player != null and !current_player.alive:
+		violations.append("Current player %d is not alive." % current_player.id)
+	if game_finished and phase != PHASE_FINISHED:
+		violations.append("Finished match is not in the finished phase.")
+	if !market_stable and unstable_value <= 0:
+		violations.append("Unstable market has no pending value.")
+	return violations
+
+
 func _to_string() -> String:
 	var current_player_id := -1 if current_player == null else current_player.id
 	return "Turn {turn} - {alive_count}/{player_count} alive - Current Player {current_player}\nPlayers: {players}".format({
