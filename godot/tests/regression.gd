@@ -8,6 +8,7 @@ var fixture_card_counter := 0
 func _init() -> void:
 	test_seeded_card_setup_and_configuration()
 	test_offer_and_repayment_commands_are_atomic()
+	test_company_lineage_and_public_history()
 	test_non_mutating_helpers_and_instability_repayment()
 	test_monopoly_precedes_pending_crash()
 	test_unstable_acquisition_resolves_one_crash()
@@ -19,7 +20,7 @@ func _init() -> void:
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 10 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 11 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -153,6 +154,41 @@ func test_offer_and_repayment_commands_are_atomic() -> void:
 	expect(!game.submit_repayment(target.id, [low_return.id]), "repeated repayment was accepted")
 	game.finish_game("Test", [])
 	expect(!game.submit_offer(actor.id, target.id, offered.id), "post-finish offer was accepted")
+
+
+func test_company_lineage_and_public_history() -> void:
+	var game := game_for(4)
+	var acquirer := game.players[0]
+	var middle := game.players[1]
+	var victim := game.players[2]
+	middle.hand = cards([4])
+	victim.hand = cards([1])
+	game.current_player = middle
+	resolve_bot_trade(game, middle, victim, middle.hand[0])
+	expect(middle.owned_company_ids == ["company-2", "company-3"], "first acquisition did not transfer company lineage")
+
+	acquirer.hand = cards([6])
+	game.current_player = acquirer
+	game.phase = GameModel.PHASE_AWAITING_OFFER
+	resolve_bot_trade(game, acquirer, middle, acquirer.hand[0])
+	expect(acquirer.owned_company_ids == ["company-1", "company-2", "company-3"], "second acquisition did not inherit all company tokens")
+	expect(middle.acquired_by_id == acquirer.id, "direct acquirer identity was not retained")
+
+	var history_before := game.public_history()
+	expect(history_before.filter(func(event: Dictionary): return event["type"] == "player_acquired").size() == 2, "public history did not record both acquisitions")
+	var acquisition_event: Dictionary = history_before.filter(func(event: Dictionary): return event["type"] == "player_acquired")[0]
+	var recorded_cards: Array = acquisition_event["data"]["cards"]
+	var recorded_id: String = recorded_cards[0]["id"]
+	acquirer.hand.clear()
+	expect(game.public_history().filter(func(event: Dictionary): return event["type"] == "player_acquired")[0]["data"]["cards"][0]["id"] == recorded_id, "history changed after later hand mutation")
+	var snapshot := game.public_snapshot()
+	expect(snapshot["players"][0].has("hand_size") and !snapshot["players"][0].has("hand"), "public snapshot exposed a private hand")
+
+	acquirer.hand = cards([3])
+	game.market_stable = false
+	game.unstable_value = 3
+	game.destroy_value()
+	expect(acquirer.owned_company_ids.is_empty(), "bankruptcy did not remove inherited company tokens")
 
 
 func test_non_mutating_helpers_and_instability_repayment() -> void:
