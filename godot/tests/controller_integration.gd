@@ -33,6 +33,7 @@ func _init() -> void:
 	controller.restart_game([1], 1)
 	_expect(!controller.submit_offer(1, 2, offered_id, old_generation), "stale offer affected a restarted match")
 	_expect(controller.game.phase == GameModel.PHASE_AWAITING_OFFER, "stale offer changed restarted match phase")
+	await _test_human_repayment_against_model(scene)
 	if failures.is_empty():
 		print("Controller integration checks passed.")
 		quit(0)
@@ -44,6 +45,32 @@ func _init() -> void:
 
 func _on_decision_requested(actor_id: int, phase: String, view: PlayerView) -> void:
 	decisions.append({"actor_id": actor_id, "phase": phase, "view": view})
+
+
+func _test_human_repayment_against_model(scene: PackedScene) -> void:
+	decisions.clear()
+	var delayed_controller := scene.instantiate() as GameController
+	delayed_controller.auto_start = false
+	delayed_controller.fast_headless = false
+	delayed_controller.ai_delay_seconds = 0.01
+	root.add_child(delayed_controller)
+	delayed_controller.decision_requested.connect(_on_decision_requested)
+	delayed_controller.restart_game([1], 2)
+	delayed_controller.game.players[0].hand = [Card.new("human-overpay", 3, "Money")]
+	delayed_controller.game.players[1].hand = [Card.new("ai-offer", 2, "Workers"), Card.new("ai-extra", 1, "Tech")]
+	await create_timer(0.05).timeout
+	_expect(decisions.size() == 1 and decisions[0]["actor_id"] == 1 and decisions[0]["phase"] == GameModel.PHASE_AWAITING_REPAYMENT, "human repayment did not pause an AI turn")
+	_expect(!delayed_controller.submit_repayment(1, ["human-overpay", "human-overpay"]), "duplicate human repayment was accepted")
+	_expect(delayed_controller.game.phase == GameModel.PHASE_AWAITING_REPAYMENT, "invalid repayment cleared the pending human choice")
+	_expect(delayed_controller.submit_repayment(1, ["human-overpay"]), "legal human overpayment was rejected")
+
+	var mirror := GameModel.new(MatchConfig.for_player_count(10, 1))
+	mirror.players[0].hand = [Card.new("human-overpay", 3, "Money")]
+	mirror.players[1].hand = [Card.new("ai-offer", 2, "Workers"), Card.new("ai-extra", 1, "Tech")]
+	mirror.current_player = mirror.players[1]
+	_expect(mirror.submit_offer(2, 1, "ai-offer"), "mirror AI offer was rejected")
+	_expect(mirror.submit_repayment(1, ["human-overpay"]), "mirror human overpayment was rejected")
+	_expect(delayed_controller.game.players[0].hand[0].id == mirror.players[0].hand[0].id, "paced controller and direct model produced different trade ownership")
 
 
 func _expect(condition: bool, message: String) -> void:

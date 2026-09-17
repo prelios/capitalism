@@ -13,6 +13,7 @@ var policies: Dictionary[int, PlayerPolicy] = {}
 var policy_rng := RandomNumberGenerator.new()
 var match_generation := 0
 var ai_delay_seconds := 0.25
+var fast_headless := true
 
 signal decision_requested(actor_id: int, phase: String, view: PlayerView)
 signal action_resolved
@@ -61,7 +62,7 @@ func _resolve_repayment(generation: int) -> bool:
 
 
 func _wait_for_ai(generation: int) -> bool:
-	if !OS.has_feature("headless"):
+	if !fast_headless or !OS.has_feature("headless"):
 		await get_tree().create_timer(ai_delay_seconds).timeout
 	return generation == match_generation and !game.game_finished
 
