@@ -4,7 +4,8 @@ extends Panel
 func _on_game_started(players: Array[Player], policies: Dictionary[int, PlayerPolicy]) -> void:
 	print("Starting game with %d players:" % players.size())
 	for player in players:
-		print("  Player %d: %s" % [player.id, policies[player.id].display_name])
+		var personality := "Human" if !policies.has(player.id) else policies[player.id].display_name
+		print("  Player %d: %s" % [player.id, personality])
 
 
 func _on_turn_started(turn: int, current_player: Player) -> void:

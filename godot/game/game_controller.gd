@@ -5,6 +5,8 @@ class_name GameController
 # Constants
 const NUM_PLAYERS := 10
 
+@export var auto_start := true
+
 # Vars
 var game: GameModel
 var policies: Dictionary[int, PlayerPolicy] = {}
@@ -39,7 +41,8 @@ func _resolve_offer(generation: int) -> bool:
 		var target := game.player_by_id(target_id)
 		if target == null:
 			return false
-		$DebugLogPanel._on_turn_matchup(actor, target, policy.display_name, policies[target.id].display_name)
+		var target_name := "Human" if !policies.has(target.id) else policies[target.id].display_name
+		$DebugLogPanel._on_turn_matchup(actor, target, policy.display_name, target_name)
 		return submit_offer(actor.id, target_id, policy.choose_offer_card_id(view, target_id))
 	decision_requested.emit(actor.id, GameModel.PHASE_AWAITING_OFFER, game.player_view(actor.id))
 	return await _wait_for_action(generation, GameModel.PHASE_AWAITING_OFFER)
@@ -69,15 +72,15 @@ func _wait_for_action(generation: int, expected_phase: String) -> bool:
 	return generation == match_generation and !game.game_finished
 
 
-func submit_offer(actor_id: int, target_id: int, card_id: String) -> bool:
-	if game == null or !game.submit_offer(actor_id, target_id, card_id):
+func submit_offer(actor_id: int, target_id: int, card_id: String, generation := match_generation) -> bool:
+	if generation != match_generation or game == null or !game.submit_offer(actor_id, target_id, card_id):
 		return false
 	action_resolved.emit()
 	return true
 
 
-func submit_repayment(actor_id: int, card_ids: Array[String]) -> bool:
-	if game == null or !game.submit_repayment(actor_id, card_ids):
+func submit_repayment(actor_id: int, card_ids: Array[String], generation := match_generation) -> bool:
+	if generation != match_generation or game == null or !game.submit_repayment(actor_id, card_ids):
 		return false
 	action_resolved.emit()
 	return true
@@ -85,19 +88,24 @@ func submit_repayment(actor_id: int, card_ids: Array[String]) -> bool:
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	self.start_game()
+	if auto_start:
+		start_game()
 
 
 func start_game() -> void:
 	restart_game()
 
 
-func restart_game() -> void:
+func restart_game(human_player_ids: Array[int] = [], starting_player_id := -1) -> void:
 	match_generation += 1
 	_disconnect_game()
 	setup_game()
+	for player_id in human_player_ids:
+		assign_human(player_id)
 	connect_game()
-	game.pick_starting_player()
+	game.current_player = game.player_by_id(starting_player_id) if starting_player_id > 0 else null
+	if game.current_player == null:
+		game.pick_starting_player()
 	$DebugLogPanel._on_game_started(game.players, policies)
 	play_game(match_generation)
 
