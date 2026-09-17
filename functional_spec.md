@@ -22,9 +22,9 @@ players can prey on weaker players and acquisitions can snowball. This
 is intentional. Market instability provides counter-pressure by
 periodically destroying the highest-valued assets.
 
-The primary thematic victory is monopoly: one surviving player. Because
-monopoly need not occur every game, a score-based ending is also
-supported.
+The primary thematic victory is monopoly: one surviving player. The other
+v1 terminal outcomes are a stable two-player duopoly and no-winner Global
+Economic Meltdown; score-based endings are future material.
 
 ## 2. Players and expected game shape
 
@@ -541,7 +541,8 @@ Prioritize a complete ugly-but-playable match:
 7.  Trade resolution/elimination.
 8.  Delayed instability and destruction of all highest-value cards.
 9.  Boredom-triggered instability.
-10. Monopoly and no-winner Global Economic Meltdown.
+10. Monopoly, stable two-player Duopoly, and no-winner Global Economic
+    Meltdown.
 11. Public event/trade log.
 12. Basic game-over UI.
 
@@ -560,3 +561,10 @@ Do not silently hard-code these as final design decisions:
 -   Which AI personalities ship.
 -   Whether global suit events are implemented.
 -   Final recommended player count within 4-10.
+
+## 23. v1 behavior matrix
+
+Concrete v1 examples and the current delivery boundaries are collected in
+[v1_behavior_matrix.md](v1_behavior_matrix.md). This matrix is a compact
+companion to the detailed rules above; where they disagree, the confirmed
+rules in this specification control.
