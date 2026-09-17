@@ -23,15 +23,17 @@ var turn_counter := 1
 var current_player: Player = null
 var boredom_counter := 0
 var countdown_to_destruction := -1
+var warning_turns_per_survivor: int
 var market_stable := true
 var game_finished := false
 
 
-func _init(num_players: int) -> void:
+func _init(num_players: int, configured_warning_turns_per_survivor := 1) -> void:
 	player_types = create_player_types()
 	players = create_players(num_players)
 	deal_cards(create_deck(num_players), players)
 	max_value = num_players
+	warning_turns_per_survivor = max(1, configured_warning_turns_per_survivor)
 
 
 func create_player_types() -> Array[String]:
@@ -144,17 +146,13 @@ func finalize_turn() -> void:
 	if game_finished:
 		return
 	if !market_stable:
-		boredom_counter = 0
-		market_unstable.emit(countdown_to_destruction)
-		if countdown_to_destruction <= 0:
-			destroy_value()
-		else:
-			countdown_to_destruction -= 1
+		advance_warning()
 		return
 	if check_game_end():
 		return
 	if boredom_counter > BOREDOM_MULTIPLIER * alive_players().size():
 		destabilize_market()
+		advance_warning()
 
 
 func end_turn() -> void:
@@ -168,7 +166,15 @@ func destabilize_market() -> void:
 		return
 	boredom_counter = 0
 	market_stable = false
-	countdown_to_destruction = alive_players().size()
+	countdown_to_destruction = alive_players().size() * warning_turns_per_survivor
+
+
+func advance_warning() -> void:
+	boredom_counter = 0
+	market_unstable.emit(countdown_to_destruction)
+	countdown_to_destruction -= 1
+	if countdown_to_destruction == 0:
+		destroy_value()
 
 
 func destroy_value() -> void:

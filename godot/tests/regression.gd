@@ -10,11 +10,12 @@ func _init() -> void:
 	test_unstable_acquisition_resolves_one_crash()
 	test_simultaneous_bankruptcy_ends_in_meltdown()
 	test_stable_two_player_duopoly()
+	test_warning_timing_uses_completed_turns()
 	test_fixed_seat_turn_traversal()
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 6 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 7 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -118,6 +119,24 @@ func test_stable_two_player_duopoly() -> void:
 	incomplete_game.players[1].hand = [1, 2]
 	incomplete_game.max_value = 2
 	expect(!incomplete_game.check_game_end(), "missing active value ended as a duopoly")
+
+
+func test_warning_timing_uses_completed_turns() -> void:
+	var game := GameModel.new(4)
+	var announced_counts: Array[int] = []
+	game.market_unstable.connect(func(count: int) -> void: announced_counts.append(count))
+	for player in game.players:
+		player.hand = [1, 2, 3, 4]
+	game.destabilize_market()
+	for _turn in range(4):
+		game.finalize_turn()
+	expect(announced_counts == [4, 3, 2, 1], "warning did not count each completed turn from the trigger")
+	expect(game.market_stable and game.max_value == 3, "warning did not resolve the crash when its count reached zero")
+
+	var boredom_game := GameModel.new(3)
+	boredom_game.boredom_counter = boredom_game.BOREDOM_MULTIPLIER * boredom_game.alive_players().size() + 1
+	boredom_game.finalize_turn()
+	expect(!boredom_game.market_stable and boredom_game.countdown_to_destruction == 2, "boredom warning did not count its triggering turn")
 
 
 func test_fixed_seat_turn_traversal() -> void:

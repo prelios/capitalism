@@ -179,7 +179,36 @@ The model should explicitly represent:
 - the unstable value;
 - when the warning period resolves.
 
-The exact warning duration remains configurable pending playtesting.
+#### Provisional warning timing
+
+The warning duration is configured as a number of **completed warning
+turns per survivor when the warning begins**. The provisional setting is
+one turn per survivor. The survivor count is captured when the warning
+starts; later eliminations or bankruptcies do not extend or shorten its
+deadline.
+
+The triggering turn is the first completed warning turn. At that turn's
+finalization, the model announces the remaining count, decrements it, and
+resolves the crash immediately if it reaches zero. This applies equally to
+a stable-market acquisition and to boredom. The triggering action itself
+has already resolved before the warning begins, so all players see the
+pending value during that action's turn finalization.
+
+For example, an acquisition leaves four survivors while the market is
+stable. The warning begins with a count of four. Finalization of that
+acquisition turn announces 4, then later completed turns announce 3, 2,
+and 1. The count reaches zero at the end of the fourth warning turn, so
+the crash removes the pending value before another turn starts. The same
+sequence applies when boredom starts the warning. The setting is
+provisional for playtesting; presentation may expose it as an exact count
+or qualitative pressure.
+
+An acquisition during a warning does not consume another warning turn:
+after normal acquisition transfer and monopoly precedence, it immediately
+resolves the existing crash. A crash that bankrupts the current player
+removes that player atomically; the next turn selects the next living seat
+clockwise from the bankrupt player's original seat. Bankruptcy never starts
+or queues another warning.
 
 ### Elimination During Market Instability
 
