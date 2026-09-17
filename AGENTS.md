@@ -42,5 +42,5 @@
 - Review the staged diff and run the relevant checks before each commit. Keep commits buildable where practical; do not hide known failures behind a success claim.
 - Use concise imperative messages, optionally including the issue number, e.g. `Fix clockwise turn selection after bankruptcy (#10)`. Include commit hashes in the completion report.
 - Use `codex/` when a new branch is needed. Do not rewrite existing commits, discard unrelated changes, or change branches unnecessarily.
-- Local commit permission does not authorize pushing, merging, publishing, or closing GitHub issues. Do those when explicitly requested or already authorized for the current task.
+- Local commit permission does not authorize pushing, merging, publishing, or closing GitHub issues. Closing a GitHub issue is authorized once its acceptance criteria have been verified and its completed work is committed; include the supporting commit hash and verification evidence in the closing comment. Pushing, merging, and publishing still require explicit authorization.
 - Keep `.godot/`, temporary logs, generated builds, and credentials out of commits. Preserve Godot source identity files such as `.gd.uid` when relevant to the change.
