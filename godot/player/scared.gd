@@ -8,13 +8,17 @@ func _init(random_source: RandomNumberGenerator = null) -> void:
 
 
 func choose_target(view: PlayerView) -> int:
-	var weakest: Dictionary = {}
+	var weakest_size := -1
+	var candidates: Array[int] = []
 	for player in view.players():
 		if !player["alive"] or player["player_id"] == view.requester_id:
 			continue
-		if weakest.is_empty() or player["hand_size"] < weakest["hand_size"]:
-			weakest = player
-	return super.choose_target(view) if weakest.is_empty() else weakest["player_id"]
+		if weakest_size == -1 or player["hand_size"] < weakest_size:
+			weakest_size = player["hand_size"]
+			candidates = [player["player_id"]]
+		elif player["hand_size"] == weakest_size:
+			candidates.append(player["player_id"])
+	return super.choose_target(view) if candidates.is_empty() else candidates[rng.randi_range(0, candidates.size() - 1)]
 
 
 # Offer lowest card that's in our hand, always

@@ -217,6 +217,13 @@ func test_player_views_and_policies() -> void:
 	var fair_policy := AggroPlayer.new()
 	var target_id := fair_policy.choose_target(view)
 	expect(target_id != 1 and target_id > 0, "fair policy could not choose a public target")
+	var tie_rng := RandomNumberGenerator.new()
+	tie_rng.seed = 99
+	var tied_policy := AggroPlayer.new(tie_rng)
+	var tied_targets: Dictionary = {}
+	for _attempt in 8:
+		tied_targets[tied_policy.choose_target(view)] = true
+	expect(tied_targets.size() > 1, "fair target tie-breaking always chose one seat")
 	var optimal := OptimalPlayer.new()
 	expect(optimal.choose_target(view) == -1, "optimal policy accepted a normal player view")
 	var privileged_target := optimal.choose_target(game.privileged_player_view(1))
@@ -238,6 +245,11 @@ func test_non_mutating_helpers_and_instability_repayment() -> void:
 		expect(policy.choose_repayment_card_ids(repayment_game.player_view(1), 1) == [repayment_game.players[0].hand[1].id], "%s did not discard the unstable value" % policy.display_name)
 		repayment_game.market_stable = true
 		expect(card_values(repayment_game.players[0].hand) == [1, 4], "%s repayment selection mutated its hand" % policy.display_name)
+	var exact_game := game_for(4)
+	exact_game.players[0].hand = cards([1, 2, 4])
+	var exact_ids := PlayerPolicy.new().choose_repayment_card_ids(exact_game.player_view(1), 3)
+	expect(exact_ids.size() == ArrayUtils.distinct(exact_ids).size(), "repayment policy returned duplicate card IDs")
+	expect(exact_ids == [exact_game.players[0].hand[0].id, exact_game.players[0].hand[1].id], "repayment policy did not choose the exact minimum-total repayment")
 
 
 func test_monopoly_precedes_pending_crash() -> void:
