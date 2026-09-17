@@ -196,6 +196,7 @@ func resolve_acquisition(actor: Player, target: Player) -> void:
 	phase = PHASE_TURN_RESOLVED
 	pending_trade = null
 	actor.hand.append_array(target.hand)
+	actor.acquire_companies_from(target)
 	target.die()
 	player_eliminated.emit(target)
 	if check_game_end():
@@ -290,6 +291,7 @@ func destroy_value() -> void:
 			bankrupt_players.append(player)
 	for player in bankrupt_players:
 		player.die()
+		player.remove_companies()
 		player_eliminated.emit(player)
 	stabilize_market()
 	check_game_end()

@@ -6,6 +6,8 @@ class_name Player
 var id: int
 var seat: int
 var company_id: String
+var owned_company_ids: Array[String] = []
+var acquired_by_id := -1
 var player_type: String
 var alive := true
 var hand: Array[Card] = []
@@ -16,6 +18,7 @@ func _init(id: int) -> void:
 	self.id = id
 	self.seat = id
 	self.company_id = "company-%d" % id
+	self.owned_company_ids = [self.company_id]
 	self.player_type = "DefaultPlayer SHOULD NOT EXIST"
 
 func hand_value() -> int:
@@ -62,6 +65,16 @@ func remove_cards_with_value(value: int) -> void:
 func die() -> void:
 	self.hand.clear()
 	self.alive = false
+
+
+func acquire_companies_from(victim: Player) -> void:
+	owned_company_ids.append_array(victim.owned_company_ids)
+	victim.owned_company_ids.clear()
+	victim.acquired_by_id = id
+
+
+func remove_companies() -> void:
+	owned_company_ids.clear()
 
 
 func _to_string() -> String:
