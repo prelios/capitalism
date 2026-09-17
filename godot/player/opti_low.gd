@@ -4,21 +4,13 @@ extends OptimalPlayer
 class_name OptiLowPlayer
 
 
-func _init(id):
-	super(id)
-	self.player_type = "OptiLow"
+func _init(random_source: RandomNumberGenerator = null) -> void:
+	super("OptiLow", random_source)
 
 
-# Offer lowest card that's in our hand, but not in target's hand
-func offer_card(target: Player) -> Card:
-	var candidates: Array[Card] = []
-	for card in hand:
-		if !target.has_card_value(card.value):
-			candidates.append(card)
-	if candidates.is_empty():
-		candidates = hand
-	var lowest := candidates[0]
-	for card in candidates:
-		if card.value < lowest.value:
+func choose_offer_card_id(view: PlayerView, _target_id: int) -> String:
+	var lowest: Dictionary = {}
+	for card in view.own_hand():
+		if lowest.is_empty() or card["value"] < lowest["value"]:
 			lowest = card
-	return lowest
+	return "" if lowest.is_empty() else lowest["id"]

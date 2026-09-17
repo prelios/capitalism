@@ -1,53 +1,35 @@
-extends Player
+extends PlayerPolicy
 
-## An OptimalPlayer has full knowledge of other players' hands.
-## It will attempt to play optimally (and avoid wasteful moves if possible).
+## Development-only policy. It requires privileged state and is never assigned by GameController.
 class_name OptimalPlayer
 
 
-func _init(id):
-	super(id)
-	self.player_type = "Optimal"
+func _init(policy_name := "Optimal", random_source: RandomNumberGenerator = null) -> void:
+	super(policy_name, random_source)
 
 
-# Choose weakest player based on total card value, excluding exact-match mirrors
-func choose_target(players: Array[Player]):
-	var weakest: Player = null
-	
-	for p in players:
-		# Don't attack ourselves
-		if p == self:
+func choose_target(view: PlayerView) -> int:
+	if !(view is PrivilegedPlayerView):
+		return -1
+	var hands := (view as PrivilegedPlayerView).all_hands()
+	var weakest_id := -1
+	var weakest_value := 0
+	for player in view.players():
+		var player_id: int = player["player_id"]
+		if !player["alive"] or player_id == view.requester_id:
 			continue
-		
-		# If our entire hand is contained in the target hand, they should be skipped (can always match-return)
-		if has_all_card_values(p):
-			continue
-		
-		# Weakest player is chosen based on total card value
-		if weakest == null || p.hand_value() < weakest.hand_value():
-			weakest = p
-	
-	
-	if weakest != null:
-		return weakest
-	else:
-		# It's possible that weakest player is null if there was no weakest player that would be a "good" target.
-		# We still need a target, so defer to super.
-		return super.choose_target(players)
+		var total := 0
+		for card in hands[player_id]:
+			total += card["value"]
+		if weakest_id == -1 or total < weakest_value:
+			weakest_id = player_id
+			weakest_value = total
+	return weakest_id
 
 
-func return_cards(offered: int, market_stable: bool, max_value: int) -> Array[Card]:
-	# If market is unstable and we have a max_value card (which will disappear),
-	# always return that card regardless of target value (we'll lose it anyway).
-	if !market_stable && has_card_value(max_value):
-		return [first_card_with_value(max_value)]
-	
-	# In other cases, defer to super
-	return super.return_cards(offered, market_stable, max_value)
-
-
-func has_all_card_values(target: Player) -> bool:
-	for card in hand:
-		if !target.has_card_value(card.value):
-			return false
-	return true
+func choose_repayment_card_ids(view: PlayerView, offered_value: int) -> Array[String]:
+	if !view.market_is_stable():
+		for card in view.own_hand():
+			if card["value"] == view.max_value():
+				return [card["id"]]
+	return super.choose_repayment_card_ids(view, offered_value)

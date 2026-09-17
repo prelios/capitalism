@@ -9,6 +9,7 @@ func _init() -> void:
 	test_seeded_card_setup_and_configuration()
 	test_offer_and_repayment_commands_are_atomic()
 	test_company_lineage_and_public_history()
+	test_player_views_and_policies()
 	test_domain_invariants()
 	test_non_mutating_helpers_and_instability_repayment()
 	test_monopoly_precedes_pending_crash()
@@ -21,7 +22,7 @@ func _init() -> void:
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 12 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 13 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -72,11 +73,7 @@ func resolve_bot_trade(game: GameModel, actor: Player, target: Player, offered: 
 		return false
 	if game.phase != GameModel.PHASE_AWAITING_REPAYMENT:
 		return true
-	var returned_cards := target.return_cards(offered.value, game.market_stable, game.max_value)
-	var returned_ids: Array[String] = []
-	for card in returned_cards:
-		returned_ids.append(card.id)
-	return game.submit_repayment(target.id, returned_ids)
+	return game.submit_repayment(target.id, PlayerPolicy.new().choose_repayment_card_ids(game.player_view(target.id), offered.value))
 
 
 func test_seeded_card_setup_and_configuration() -> void:
@@ -198,10 +195,32 @@ func test_domain_invariants() -> void:
 	game.pick_starting_player()
 	game.start_next_turn()
 	var actor := game.current_player
-	var target := actor.choose_target(game.alive_players())
-	resolve_bot_trade(game, actor, target, actor.offer_card(target))
+	var policy := PlayerPolicy.new("Test")
+	var target := game.player_by_id(policy.choose_target(game.player_view(actor.id)))
+	var offered_id := policy.choose_offer_card_id(game.player_view(actor.id), target.id)
+	var offered: Card = actor.hand.filter(func(card: Card): return card.id == offered_id)[0]
+	resolve_bot_trade(game, actor, target, offered)
 	game.complete_turn()
 	expect(game.invariant_violations().is_empty(), "accepted transition violated domain invariants")
+
+
+func test_player_views_and_policies() -> void:
+	var game := game_for(4)
+	var view := game.player_view(1)
+	var opponent := game.players[1]
+	var public_players := view.players()
+	expect(view.own_hand().size() == game.players[0].hand.size(), "player view omitted the requester's hand")
+	expect(!public_players[1].has("hand") and !public_players[1].has("hand_value"), "normal player view exposed an opponent hand or total")
+	public_players[1]["hand_size"] = 999
+	view.own_hand().clear()
+	expect(opponent.hand.size() != 999 and game.players[0].hand.size() == 4, "mutating a player view changed model state")
+	var fair_policy := AggroPlayer.new()
+	var target_id := fair_policy.choose_target(view)
+	expect(target_id != 1 and target_id > 0, "fair policy could not choose a public target")
+	var optimal := OptimalPlayer.new()
+	expect(optimal.choose_target(view) == -1, "optimal policy accepted a normal player view")
+	var privileged_target := optimal.choose_target(game.privileged_player_view(1))
+	expect(privileged_target != 1 and privileged_target > 0, "optimal policy did not accept its explicit privileged view")
 
 
 func test_non_mutating_helpers_and_instability_repayment() -> void:
@@ -210,13 +229,15 @@ func test_non_mutating_helpers_and_instability_repayment() -> void:
 	var unique := ArrayUtils.distinct(hand)
 	expect(hand == original_hand, "distinct() changed its input hand")
 	expect(unique == [4, 1], "distinct() did not preserve first-seen order")
-	var bots: Array[Player] = [AggroPlayer.new(1), ScaredPlayer.new(1), OptimalPlayer.new(1)]
-	for bot in bots:
-		bot.rng = RandomNumberGenerator.new()
-		bot.hand = cards([1, 4])
-		expect(card_values(bot.return_cards(1, true, 4)) == [1], "%s discarded during a stable market" % bot.player_type)
-		expect(card_values(bot.return_cards(1, false, 4)) == [4], "%s did not discard during an unstable market" % bot.player_type)
-		expect(card_values(bot.hand) == [1, 4], "%s repayment selection mutated its hand" % bot.player_type)
+	var repayment_game := game_for(4)
+	repayment_game.players[0].hand = cards([1, 4])
+	var policies: Array[PlayerPolicy] = [AggroPlayer.new(), ScaredPlayer.new(), OptimalPlayer.new(), OptiHighPlayer.new(), OptiLowPlayer.new(), OptiRandPlayer.new()]
+	for policy in policies:
+		expect(policy.choose_repayment_card_ids(repayment_game.player_view(1), 1).size() == 1, "%s did not select a stable repayment" % policy.display_name)
+		repayment_game.market_stable = false
+		expect(policy.choose_repayment_card_ids(repayment_game.player_view(1), 1) == [repayment_game.players[0].hand[1].id], "%s did not discard the unstable value" % policy.display_name)
+		repayment_game.market_stable = true
+		expect(card_values(repayment_game.players[0].hand) == [1, 4], "%s repayment selection mutated its hand" % policy.display_name)
 
 
 func test_monopoly_precedes_pending_crash() -> void:
@@ -371,8 +392,10 @@ func run_seeded_smoke(player_count: int, run_seed: int) -> void:
 	while !game.game_finished and game.turn_counter <= cap:
 		game.start_next_turn()
 		var current := game.current_player
-		var target := current.choose_target(game.alive_players())
-		var offered := current.offer_card(target)
+		var policy := PlayerPolicy.new("Smoke")
+		var target := game.player_by_id(policy.choose_target(game.player_view(current.id)))
+		var offered_id := policy.choose_offer_card_id(game.player_view(current.id), target.id)
+		var offered: Card = current.hand.filter(func(card: Card): return card.id == offered_id)[0]
 		resolve_bot_trade(game, current, target, offered)
 		game.complete_turn()
 		for violation in game.invariant_violations():

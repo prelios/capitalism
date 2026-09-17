@@ -23,7 +23,6 @@ const PHASE_FINISHED := "finished"
 var config: MatchConfig
 var configuration_error := ""
 var rng := RandomNumberGenerator.new()
-var player_types: Array[String]
 var players: Array[Player] = []
 var max_value: int
 var turn_counter := 1
@@ -48,16 +47,11 @@ func _init(configuration: MatchConfig) -> void:
 		game_finished = true
 		return
 	rng.seed = config.rng_seed
-	player_types = create_player_types()
 	players = create_players(config.player_count)
 	deal_cards(create_deck(), players)
 	max_value = config.player_count
 	warning_turns_per_survivor = config.warning_turns_per_survivor
 	boredom_multiplier = config.boredom_multiplier
-
-
-func create_player_types() -> Array[String]:
-	return ["Random", "Aggro", "Scared", "OptiHigh", "OptiLow", "OptiRand"]
 
 
 func create_deck() -> Array[Card]:
@@ -86,20 +80,8 @@ func shuffle_cards(cards: Array[Card]) -> void:
 func create_players(num_players: int) -> Array[Player]:
 	var created_players: Array[Player] = []
 	for player_id in range(1, num_players + 1):
-		var player := create_player(player_id, player_types[rng.randi_range(0, player_types.size() - 1)])
-		player.rng = rng
-		created_players.append(player)
+		created_players.append(Player.new(player_id))
 	return created_players
-
-
-func create_player(id: int, player_type: String) -> Player:
-	match player_type:
-		"Aggro": return AggroPlayer.new(id)
-		"Scared": return ScaredPlayer.new(id)
-		"OptiHigh": return OptiHighPlayer.new(id)
-		"OptiLow": return OptiLowPlayer.new(id)
-		"OptiRand": return OptiRandPlayer.new(id)
-		_: return RandomPlayer.new(id)
 
 
 func pick_starting_player() -> void:
@@ -367,7 +349,24 @@ func public_snapshot() -> Dictionary:
 	var seats: Array[Dictionary] = []
 	for player in players:
 		seats.append({"player_id": player.id, "seat": player.seat, "alive": player.alive, "hand_size": player.hand.size(), "company_ids": player.owned_company_ids.duplicate()})
-	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "unstable_value": unstable_value, "turns_remaining": countdown_to_destruction, "players": seats}
+	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "players": seats}
+
+
+func player_view(requester_id: int) -> PlayerView:
+	var requester := player_by_id(requester_id)
+	if requester == null:
+		return null
+	return PlayerView.new(requester_id, public_cards(requester.hand), public_snapshot(), public_history())
+
+
+func privileged_player_view(requester_id: int) -> PrivilegedPlayerView:
+	var requester := player_by_id(requester_id)
+	if requester == null:
+		return null
+	var hands_by_player: Dictionary = {}
+	for player in players:
+		hands_by_player[player.id] = public_cards(player.hand)
+	return PrivilegedPlayerView.new(requester_id, public_cards(requester.hand), public_snapshot(), public_history(), hands_by_player)
 
 
 func public_card(card: Card) -> Dictionary:

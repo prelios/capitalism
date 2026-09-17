@@ -1,48 +1,34 @@
-extends Player
+extends PlayerPolicy
 
 class_name AggroPlayer
 
 
-func _init(id):
-	super(id)
-	self.player_type = "Aggro"
+func _init(random_source: RandomNumberGenerator = null) -> void:
+	super("Aggro", random_source)
 
 
-func choose_target(players: Array[Player]) -> Player:
-	# Choose weakest player based on number of cards (least cards is weakest)
-	var weakest: Player = null
-	for p in players:
-		# Don't attack ourselves
-		if p == self:
+func choose_target(view: PlayerView) -> int:
+	var weakest: Dictionary = {}
+	for player in view.players():
+		if !player["alive"] or player["player_id"] == view.requester_id:
 			continue
-		
-		# Weakest player is chosen based on total card count
-		if weakest == null || p.hand.size() < weakest.hand.size():
-			weakest = p
-	
-	
-	if weakest != null:
-		return weakest
-	else:
-		# It's possible that weakest player is null if there was no weakest player that would be a "good" target.
-		# We still need a target, so defer to super.
-		return super.choose_target(players)
+		if weakest.is_empty() or player["hand_size"] < weakest["hand_size"]:
+			weakest = player
+	return super.choose_target(view) if weakest.is_empty() else weakest["player_id"]
 
 
 # Offer highest card that's in our hand, always
-func offer_card(_target: Player) -> Card:
-	var highest := hand[0]
-	for card in hand:
-		if card.value > highest.value:
+func choose_offer_card_id(view: PlayerView, _target_id: int) -> String:
+	var highest: Dictionary = {}
+	for card in view.own_hand():
+		if highest.is_empty() or card["value"] > highest["value"]:
 			highest = card
-	return highest
+	return "" if highest.is_empty() else highest["id"]
 
 
-func return_cards(offered: int, market_stable: bool, max_value: int) -> Array[Card]:
-	# If market is unstable and we have a max_value card (which will disappear),
-	# always return that card regardless of target value (we'll lose it anyway).
-	if !market_stable && has_card_value(max_value):
-		return [first_card_with_value(max_value)]
-	
-	# In other cases, defer to super
-	return super.return_cards(offered, market_stable, max_value)
+func choose_repayment_card_ids(view: PlayerView, offered_value: int) -> Array[String]:
+	if !view.market_is_stable():
+		for card in view.own_hand():
+			if card["value"] == view.max_value():
+				return [card["id"]]
+	return super.choose_repayment_card_ids(view, offered_value)
