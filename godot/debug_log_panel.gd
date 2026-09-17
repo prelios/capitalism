@@ -19,11 +19,12 @@ func _on_turn_matchup(current_player: Player, target: Player) -> void:
 
 
 func _on_trade_proposed(from: Player, to: Player, card: int) -> void:
-	print("Trade proposed from {from} to {to}: {card}".format({
-		"from": from.id,
-		"to": to.id,
-		"card": card
-	}))
+	return
+#	print("Trade proposed from {from} to {to}: {card}".format({
+#		"from": from.id,
+#		"to": to.id,
+#		"card": card
+#	}))
 
 
 func _on_trade_resolved(from: Player, to: Player, offered: int, received: Array[int]) -> void:
