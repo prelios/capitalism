@@ -22,6 +22,7 @@ func _init() -> void:
 	start_match.emit_signal("pressed")
 	await process_frame
 	_expect(!main_menu.visible and controller.game.config.player_count == 4, "main menu did not start the selected player-count match")
+	_expect(controller.game.current_player.id == 1, "Player 1 did not start the playtest match")
 	_expect(ai_pacing.button_pressed and controller.ai_turn_pacing_enabled and is_equal_approx(controller.ai_delay_seconds, 2.0), "default AI pacing was not configured for the playtest delay")
 	controller.game.players[0].die()
 	controller.presentation_updated.emit(controller.game.player_view(1))

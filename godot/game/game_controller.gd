@@ -166,7 +166,7 @@ func restart_game(human_player_ids: Array[int] = [], starting_player_id := -1) -
 	for player_id in human_player_ids:
 		assign_human(player_id)
 	connect_game()
-	game.current_player = game.player_by_id(starting_player_id) if starting_player_id > 0 else null
+	game.current_player = game.player_by_id(starting_player_id) if starting_player_id > 0 else game.player_by_id(1)
 	if game.current_player == null:
 		game.pick_starting_player()
 	$DebugLogPanel._on_game_started(game.players, policies)
