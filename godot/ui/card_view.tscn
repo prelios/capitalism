@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://ui/card_view.gd" id="1"]
 
 [node name="CardView" type="Button"]
-custom_minimum_size = Vector2(96, 118)
+custom_minimum_size = Vector2(118, 148)
 toggle_mode = true
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 24
 script = ExtResource("1")

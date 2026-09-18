@@ -45,12 +45,12 @@ layout_mode = 2
 [node name="Turn" type="Label" parent="Margin/Layout/Header/Margin/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 28
 text = "Turn"
 
 [node name="Market" type="Label" parent="Margin/Layout/Header/Margin/Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 22
 text = "Market"
 
 [node name="Main" type="HBoxContainer" parent="Margin/Layout"]
@@ -76,7 +76,7 @@ theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
 
 [node name="Trade" type="PanelContainer" parent="Margin/Layout/Main/Center"]
-custom_minimum_size = Vector2(0, 90)
+custom_minimum_size = Vector2(0, 108)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Margin/Layout/Main/Center/Trade"]
@@ -90,10 +90,11 @@ theme_override_constants/margin_bottom = 14
 layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
+theme_override_font_sizes/font_size = 20
 text = "Trade floor ready"
 
 [node name="Sidebar" type="VBoxContainer" parent="Margin/Layout/Main"]
-custom_minimum_size = Vector2(280, 0)
+custom_minimum_size = Vector2(310, 0)
 layout_mode = 2
 theme_override_constants/separation = 12
 
@@ -109,6 +110,7 @@ theme_override_constants/margin_bottom = 12
 
 [node name="Content" type="Label" parent="Margin/Layout/Main/Sidebar/Market/Margin"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Market"
 
 [node name="History" type="PanelContainer" parent="Margin/Layout/Main/Sidebar"]
@@ -123,13 +125,14 @@ theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 12
 
 [node name="Content" type="RichTextLabel" parent="Margin/Layout/Main/Sidebar/History/Margin"]
-custom_minimum_size = Vector2(0, 180)
+custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
 bbcode_enabled = true
 fit_content = false
+theme_override_font_sizes/normal_font_size = 18
 
 [node name="Hand" type="PanelContainer" parent="Margin/Layout"]
-custom_minimum_size = Vector2(0, 180)
+custom_minimum_size = Vector2(0, 210)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Margin/Layout/Hand"]
@@ -145,11 +148,11 @@ theme_override_constants/separation = 8
 
 [node name="Title" type="Label" parent="Margin/Layout/Hand/Margin/Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 24
 text = "Your private hand"
 
 [node name="HandScroll" type="ScrollContainer" parent="Margin/Layout/Hand/Margin/Content"]
-custom_minimum_size = Vector2(0, 118)
+custom_minimum_size = Vector2(0, 148)
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
