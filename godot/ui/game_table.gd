@@ -68,10 +68,10 @@ func _render_seats(players: Array[Dictionary], state: Dictionary, local_player_i
 func _render_trade(state: Dictionary) -> void:
 	var trade: Dictionary = state["pending_trade"]
 	if trade.is_empty():
-		_trade_label.text = "Trade floor ready\nChoose a company and a card when it is your turn."
+		_trade_label.text = _latest_public_update()
 		return
 	var offered: Dictionary = trade["offered_card"]
-	_trade_label.text = "Player %d offers %s %d to Player %d" % [trade["actor_id"], offered["suit"], offered["value"], trade["target_id"]]
+	_trade_label.text = "Player %d offers %s to Player %d\nAwaiting repayment." % [trade["actor_id"], _card_description(offered), trade["target_id"]]
 
 
 func _render_hand(cards: Array[Dictionary]) -> void:
@@ -91,9 +91,19 @@ func _render_hand(cards: Array[Dictionary]) -> void:
 
 func _render_history(events: Array[Dictionary]) -> void:
 	var lines: PackedStringArray = []
-	for event in events.slice(max(0, events.size() - 6)):
+	for event in events.slice(max(0, events.size() - 12)):
 		lines.append(_event_summary(event))
 	_history.text = "\n".join(lines)
+	_history.scroll_to_line(max(0, _history.get_line_count() - 1))
+
+
+func _latest_public_update() -> String:
+	if _last_view == null:
+		return "Trade floor ready"
+	var events := _last_view.public_history()
+	if events.is_empty():
+		return "Trade floor ready\nChoose a company and a card when it is your turn."
+	return _event_summary(events.back())
 
 
 func _market_description(state: Dictionary) -> String:
@@ -105,14 +115,41 @@ func _market_description(state: Dictionary) -> String:
 func _event_summary(event: Dictionary) -> String:
 	var data: Dictionary = event["data"]
 	match event["type"]:
-		"turn_started": return "Turn %d: Player %d" % [data["turn"], data["actor_id"]]
-		"trade_proposed": return "P%d offered %s %d to P%d" % [data["actor_id"], data["card"]["suit"], data["card"]["value"], data["target_id"]]
-		"trade_resolved": return "P%d and P%d traded" % [data["actor_id"], data["target_id"]]
-		"player_acquired": return "P%d acquired P%d" % [data["acquirer_id"], data["victim_id"]]
-		"market_warning_started": return "Warning: value %d" % data["value"]
-		"market_crashed": return "Market removed value %d" % data["value"]
-		"game_finished": return data["ending"]
+		"turn_started": return "Turn %d — Player %d acts" % [data["turn"], data["actor_id"]]
+		"trade_proposed": return "P%d offered %s to P%d" % [data["actor_id"], _card_description(data["card"]), data["target_id"]]
+		"trade_resolved": return "Trade: P%d gave %s; P%d returned %s" % [data["actor_id"], _card_description(data["offered"]), data["target_id"], _cards_description(data["returned"])]
+		"player_acquired": return "Acquisition: P%d acquired P%d and %s" % [data["acquirer_id"], data["victim_id"], _cards_description(data["cards"])]
+		"market_warning_started": return "Market warning: value %d, %d turns remaining" % [data["value"], data["turns_remaining"]]
+		"market_warning_updated": return "Market warning: value %d, %d turns remaining after this turn" % [data["value"], max(0, data["turns_remaining"] - 1)]
+		"market_crashed": return "Crash: removed all value %d%s" % [data["value"], _bankruptcy_description(data["bankrupt_player_ids"])]
+		"game_finished": return "%s — winners: %s" % [data["ending"], _player_list(data["winner_ids"])]
 		_: return event["type"]
+
+
+func _card_description(card: Dictionary) -> String:
+	return "%s %d" % [card["suit"], card["value"]]
+
+
+func _cards_description(cards: Array) -> String:
+	if cards.is_empty():
+		return "no cards"
+	var descriptions: PackedStringArray = []
+	for card: Dictionary in cards:
+		descriptions.append(_card_description(card))
+	return ", ".join(descriptions)
+
+
+func _bankruptcy_description(player_ids: Array) -> String:
+	return "; bankrupt: %s" % _player_list(player_ids) if !player_ids.is_empty() else ""
+
+
+func _player_list(player_ids: Array) -> String:
+	if player_ids.is_empty():
+		return "none"
+	var names: PackedStringArray = []
+	for player_id in player_ids:
+		names.append("P%d" % player_id)
+	return ", ".join(names)
 
 
 func _on_card_selection_changed(card_id: String, selected: bool) -> void:

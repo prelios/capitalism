@@ -31,6 +31,12 @@ func _init() -> void:
 	await process_frame
 	_expect(hand.get_child_count() == 24, "large local hand was not rendered in the scrollable hand area")
 	_expect(table.selected_card_ids().is_empty(), "selection retained an absent card ID after hand changed")
+	var trade_summary := table._event_summary({"type": "trade_resolved", "data": {"actor_id": 1, "target_id": 2, "offered": {"id": "private-offer-id", "suit": "Tech", "value": 3}, "returned": [{"id": "private-return-id", "suit": "Money", "value": 1}, {"id": "private-return-id-2", "suit": "Workers", "value": 2}]}})
+	_expect(trade_summary.contains("Tech 3") and trade_summary.contains("Money 1") and !trade_summary.contains("private-"), "public trade history omitted facts or exposed private card IDs")
+	var crash_summary := table._event_summary({"type": "market_crashed", "data": {"value": 4, "bankrupt_player_ids": [2, 3]}})
+	_expect(crash_summary.contains("value 4") and crash_summary.contains("P2, P3"), "crash history omitted value or bankrupt players")
+	var warning_summary := table._event_summary({"type": "market_warning_updated", "data": {"value": 4, "turns_remaining": 3}})
+	_expect(warning_summary.contains("2 turns remaining after this turn"), "warning history did not describe the post-turn countdown")
 	if failures.is_empty():
 		print("Table layout checks passed.")
 		quit(0)
