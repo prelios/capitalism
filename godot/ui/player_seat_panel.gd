@@ -11,7 +11,7 @@ class_name PlayerSeatPanel
 
 func set_public_player(player: Dictionary, is_local: bool, is_current: bool, is_target: bool) -> void:
 	player_id = player["player_id"]
-	_identity.text = "Player %d%s%s" % [player_id, " · You" if is_local else "", " · Current" if is_current else ""]
+	_identity.text = "%s %s\nPlayer %d%s%s" % [player["company_emoji"], player["company_name"], player_id, " · You" if is_local else "", " · Current" if is_current else ""]
 	_hand_count.text = "%d card%s" % [player["hand_size"], "" if player["hand_size"] == 1 else "s"]
 	_companies.text = "%d compan%s" % [player["company_ids"].size(), "y" if player["company_ids"].size() == 1 else "ies"]
 	if !player["alive"]:

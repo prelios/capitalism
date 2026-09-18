@@ -36,6 +36,7 @@ var _market_background := Color.TRANSPARENT
 @onready var _rematch: Button = $Result/Margin/Content/Rematch
 @onready var _main_menu: Control = $MainMenu
 @onready var _player_count: SpinBox = $MainMenu/Panel/Margin/Content/PlayerCount
+@onready var _conglomerate_name: OptionButton = $MainMenu/Panel/Margin/Content/ConglomerateName
 @onready var _ai_pacing: CheckButton = $MainMenu/Panel/Margin/Content/AIPacing
 @onready var _start_match: Button = $MainMenu/Panel/Margin/Content/StartMatch
 @onready var _restart: Button = $Margin/Layout/Header/Margin/Content/Controls/Restart
@@ -63,6 +64,7 @@ func show_main_menu(player_count := 4) -> void:
 	_player_count.get_line_edit().add_theme_font_size_override("font_size", 32)
 	_player_count.get_line_edit().alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if _controller != null:
+		_populate_conglomerate_options()
 		_ai_pacing.button_pressed = _controller.ai_turn_pacing_enabled
 	_main_menu.visible = true
 
@@ -171,6 +173,7 @@ func _on_rematch() -> void:
 
 func _on_start_match() -> void:
 	if _controller != null:
+		_controller.set_player_one_conglomerate(_conglomerate_name.selected)
 		_controller.set_ai_turn_pacing(_ai_pacing.button_pressed)
 		_controller.start_match(int(_player_count.value))
 
@@ -178,6 +181,15 @@ func _on_start_match() -> void:
 func _on_main_menu() -> void:
 	if _controller != null:
 		_controller.return_to_main_menu()
+
+
+func _populate_conglomerate_options() -> void:
+	_conglomerate_name.clear()
+	for identity: Dictionary in _controller.conglomerate_options():
+		_conglomerate_name.add_item("%s  %s" % [identity["emoji"], identity["name"]])
+	_conglomerate_name.select(_controller.selected_conglomerate_index)
+	_conglomerate_name.add_theme_font_size_override("font_size", 26)
+	_conglomerate_name.get_popup().add_theme_font_size_override("font_size", 26)
 
 
 func _latest_public_update() -> String:

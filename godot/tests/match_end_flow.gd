@@ -18,10 +18,18 @@ func _init() -> void:
 	var main_menu := table.get_node("MainMenu") as Control
 	var start_match := table.get_node("MainMenu/Panel/Margin/Content/StartMatch") as Button
 	var ai_pacing := table.get_node("MainMenu/Panel/Margin/Content/AIPacing") as CheckButton
+	var conglomerate_name := table.get_node("MainMenu/Panel/Margin/Content/ConglomerateName") as OptionButton
 	_expect(main_menu.visible, "game launch did not show the player-count menu")
+	_expect(conglomerate_name.item_count == 20, "main menu did not offer the full conglomerate roster")
+	conglomerate_name.select(3)
 	start_match.emit_signal("pressed")
 	await process_frame
 	_expect(!main_menu.visible and controller.game.config.player_count == 4, "main menu did not start the selected player-count match")
+	_expect(controller.game.players[0].company_name == controller.conglomerate_options()[3]["name"], "selected conglomerate was not assigned to Player 1")
+	var company_names: Dictionary = {}
+	for player: Player in controller.game.players:
+		company_names[player.company_name] = true
+	_expect(company_names.size() == controller.game.players.size(), "conglomerate names were not uniquely assigned")
 	_expect(controller.game.current_player.id == 1, "Player 1 did not start the playtest match")
 	_expect(ai_pacing.button_pressed and controller.ai_turn_pacing_enabled and is_equal_approx(controller.ai_delay_seconds, 2.0), "default AI pacing was not configured for the playtest delay")
 	controller.game.players[0].die()

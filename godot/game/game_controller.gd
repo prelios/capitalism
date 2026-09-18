@@ -5,6 +5,28 @@ class_name GameController
 # Constants
 const NUM_PLAYERS := 4
 const PLAYTEST_AI_DELAY_SECONDS := 2.0
+const CONGLOMERATES: Array[Dictionary] = [
+	{"name": "Apex Morrow", "emoji": "🦅"},
+	{"name": "Bramble & Bolt", "emoji": "⚡"},
+	{"name": "Cinderloop", "emoji": "🔥"},
+	{"name": "Dunewell Group", "emoji": "🏜️"},
+	{"name": "Evercoil Systems", "emoji": "🌀"},
+	{"name": "Fableworks", "emoji": "📚"},
+	{"name": "Glimmer Axis", "emoji": "✨"},
+	{"name": "Hearthstone Union", "emoji": "🏠"},
+	{"name": "Iron Orchard", "emoji": "🍎"},
+	{"name": "Juniper & Sons", "emoji": "🌲"},
+	{"name": "Kestrel Dynamics", "emoji": "🦜"},
+	{"name": "Lunar Vale", "emoji": "🌙"},
+	{"name": "Mosaic Foundry", "emoji": "🎨"},
+	{"name": "Northstar Mercantile", "emoji": "⭐"},
+	{"name": "Opaline Ventures", "emoji": "💎"},
+	{"name": "Peregrine Labs", "emoji": "🧪"},
+	{"name": "Quarrylight", "emoji": "💡"},
+	{"name": "Rook & River", "emoji": "♜"},
+	{"name": "Solstice Works", "emoji": "☀️"},
+	{"name": "Tanglewood Collective", "emoji": "🌿"},
+]
 
 @export var auto_start := false
 
@@ -18,6 +40,7 @@ var fast_headless := true
 var fast_forward := false
 var ai_turn_pacing_enabled := true
 var selected_player_count := NUM_PLAYERS
+var selected_conglomerate_index := 0
 var _main_menu_open := true
 
 signal decision_requested(actor_id: int, phase: String, view: PlayerView)
@@ -154,6 +177,14 @@ func set_ai_turn_pacing(enabled: bool) -> void:
 	ai_turn_pacing_enabled = enabled
 
 
+func conglomerate_options() -> Array[Dictionary]:
+	return CONGLOMERATES.duplicate(true)
+
+
+func set_player_one_conglomerate(index: int) -> void:
+	selected_conglomerate_index = clampi(index, 0, CONGLOMERATES.size() - 1)
+
+
 func restart_game(human_player_ids: Array[int] = [], starting_player_id := -1) -> void:
 	match_generation += 1
 	_disconnect_game()
@@ -216,6 +247,7 @@ func _disconnect_game() -> void:
 
 func setup_game() -> void:
 	self.game = GameModel.new(MatchConfig.for_player_count(selected_player_count, 1))
+	_assign_conglomerates()
 	policy_rng.seed = game.config.rng_seed + 1
 	policies.clear()
 	for player in game.players:
@@ -225,6 +257,29 @@ func setup_game() -> void:
 			1: policy = AggroPlayer.new(policy_rng)
 			_: policy = ScaredPlayer.new(policy_rng)
 		assign_policy(player.id, policy)
+
+
+func _assign_conglomerates() -> void:
+	var available := conglomerate_options()
+	var player_one_identity: Dictionary = available.pop_at(selected_conglomerate_index)
+	_apply_conglomerate_identity(game.player_by_id(1), player_one_identity)
+	_shuffle_conglomerates(available)
+	for player in game.players:
+		if player.id != 1:
+			_apply_conglomerate_identity(player, available.pop_front())
+
+
+func _shuffle_conglomerates(identities: Array[Dictionary]) -> void:
+	for index in range(identities.size() - 1, 0, -1):
+		var swap_index := game.rng.randi_range(0, index)
+		var identity := identities[index]
+		identities[index] = identities[swap_index]
+		identities[swap_index] = identity
+
+
+func _apply_conglomerate_identity(player: Player, identity: Dictionary) -> void:
+	player.company_name = identity["name"]
+	player.company_emoji = identity["emoji"]
 
 
 func assign_policy(player_id: int, policy: PlayerPolicy) -> bool:

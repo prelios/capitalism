@@ -354,7 +354,7 @@ func public_history() -> Array[Dictionary]:
 func public_snapshot() -> Dictionary:
 	var seats: Array[Dictionary] = []
 	for player in players:
-		seats.append({"player_id": player.id, "seat": player.seat, "alive": player.alive, "hand_size": player.hand.size(), "company_ids": player.owned_company_ids.duplicate()})
+		seats.append({"player_id": player.id, "seat": player.seat, "company_name": player.company_name, "company_emoji": player.company_emoji, "alive": player.alive, "hand_size": player.hand.size(), "company_ids": player.owned_company_ids.duplicate()})
 	var trade: Dictionary = {}
 	if pending_trade != null:
 		trade = {

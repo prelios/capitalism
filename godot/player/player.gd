@@ -6,6 +6,8 @@ class_name Player
 var id: int
 var seat: int
 var company_id: String
+var company_name: String
+var company_emoji: String
 var owned_company_ids: Array[String] = []
 var acquired_by_id := -1
 var alive := true
@@ -16,6 +18,8 @@ func _init(id: int) -> void:
 	self.id = id
 	self.seat = id
 	self.company_id = "company-%d" % id
+	self.company_name = "Company %d" % id
+	self.company_emoji = "🏢"
 	self.owned_company_ids = [self.company_id]
 
 func hand_value() -> int:
