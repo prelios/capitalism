@@ -18,6 +18,7 @@ var fast_headless := true
 signal decision_requested(actor_id: int, phase: String, view: PlayerView)
 signal action_resolved
 signal presentation_updated(view: PlayerView)
+signal action_rejected(reason: String)
 
 
 var local_player_id := 1
@@ -81,7 +82,10 @@ func _wait_for_action(generation: int, expected_phase: String) -> bool:
 
 
 func submit_offer(actor_id: int, target_id: int, card_id: String, generation := match_generation) -> bool:
-	if generation != match_generation or game == null or !game.submit_offer(actor_id, target_id, card_id):
+	if generation != match_generation or game == null:
+		return false
+	if !game.submit_offer(actor_id, target_id, card_id):
+		action_rejected.emit(game.last_rejection)
 		return false
 	_publish_presentation()
 	action_resolved.emit()
@@ -89,7 +93,10 @@ func submit_offer(actor_id: int, target_id: int, card_id: String, generation := 
 
 
 func submit_repayment(actor_id: int, card_ids: Array[String], generation := match_generation) -> bool:
-	if generation != match_generation or game == null or !game.submit_repayment(actor_id, card_ids):
+	if generation != match_generation or game == null:
+		return false
+	if !game.submit_repayment(actor_id, card_ids):
+		action_rejected.emit(game.last_rejection)
 		return false
 	_publish_presentation()
 	action_resolved.emit()

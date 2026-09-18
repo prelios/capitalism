@@ -10,11 +10,17 @@ const PLAYER_SEAT_SCENE := preload("res://ui/player_seat_panel.tscn")
 var _controller: GameController
 var _selected_card_ids: Array[String] = []
 var _last_view: PlayerView
+var _decision_actor_id := -1
+var _decision_phase := ""
+var _selected_target_id := -1
+var _feedback := ""
 
 @onready var _turn_label: Label = $Margin/Layout/Header/Margin/Content/Turn
 @onready var _market_label: Label = $Margin/Layout/Header/Margin/Content/Market
 @onready var _seats: FlowContainer = $Margin/Layout/Main/Center/SeatScroll/Seats
-@onready var _trade_label: Label = $Margin/Layout/Main/Center/Trade/Margin/TradeStatus
+@onready var _trade_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/TradeStatus
+@onready var _selection_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/Selection
+@onready var _confirm: Button = $Margin/Layout/Main/Center/Trade/Margin/Content/Confirm
 @onready var _market_detail: Label = $Margin/Layout/Main/Sidebar/Market/Margin/Content
 @onready var _history: RichTextLabel = $Margin/Layout/Main/Sidebar/History/Margin/Content
 @onready var _hand_title: Label = $Margin/Layout/Hand/Margin/Content/Title
@@ -25,6 +31,9 @@ func bind_controller(controller: GameController) -> void:
 	_controller = controller
 	if !_controller.presentation_updated.is_connected(_render):
 		_controller.presentation_updated.connect(_render)
+	_controller.decision_requested.connect(_on_decision_requested)
+	_controller.action_rejected.connect(_on_action_rejected)
+	_confirm.pressed.connect(_confirm_selection)
 
 
 func selected_card_ids() -> Array[String]:
@@ -41,16 +50,19 @@ func _render(view: PlayerView) -> void:
 	_render_trade(state)
 	_render_history(view.public_history())
 	_render_hand(view.own_hand())
+	_update_action_controls(state)
 
 
 func _render_seats(players: Array[Dictionary], state: Dictionary, local_player_id: int) -> void:
 	_clear_container(_seats)
 	var trade: Dictionary = state["pending_trade"]
-	var target_id: int = -1 if trade.is_empty() else trade["target_id"]
+	var target_id: int = _selected_target_id if _is_offer_decision() else (-1 if trade.is_empty() else trade["target_id"])
 	for player in players:
 		var seat := PLAYER_SEAT_SCENE.instantiate() as PlayerSeatPanel
 		_seats.add_child(seat)
 		seat.set_public_player(player, player["player_id"] == local_player_id, player["player_id"] == state["current_player_id"], player["player_id"] == target_id)
+		seat.set_target_selectable(_is_offer_decision() and player["alive"] and player["player_id"] != _decision_actor_id)
+		seat.target_selected.connect(_on_target_selected)
 
 
 func _render_trade(state: Dictionary) -> void:
@@ -104,10 +116,86 @@ func _event_summary(event: Dictionary) -> String:
 
 
 func _on_card_selection_changed(card_id: String, selected: bool) -> void:
-	if selected and !_selected_card_ids.has(card_id):
+	if selected and _is_offer_decision():
+		_selected_card_ids = [card_id]
+		_render(_last_view)
+	elif selected and !_selected_card_ids.has(card_id):
 		_selected_card_ids.append(card_id)
 	elif !selected:
 		_selected_card_ids.erase(card_id)
+	_update_action_controls(_last_view.public_state())
+
+
+func _on_decision_requested(actor_id: int, phase: String, _view: PlayerView) -> void:
+	_decision_actor_id = actor_id
+	_decision_phase = phase
+	_selected_card_ids.clear()
+	_selected_target_id = -1
+	_feedback = ""
+	if _last_view != null:
+		_render(_last_view)
+
+
+func _on_target_selected(player_id: int) -> void:
+	_selected_target_id = player_id
+	_feedback = ""
+	_render(_last_view)
+
+
+func _update_action_controls(state: Dictionary) -> void:
+	var enabled := false
+	if _is_offer_decision():
+		_trade_label.text = "Choose one card and a company to make your offer."
+		enabled = _selected_card_ids.size() == 1 and _selected_target_id > 0
+		_selection_label.text = "Card: %s · Target: %s%s" % [_selected_card_ids[0] if _selected_card_ids.size() == 1 else "none", "Player %d" % _selected_target_id if _selected_target_id > 0 else "none", _feedback]
+	elif _is_repayment_decision() and !state["pending_trade"].is_empty():
+		var offered: Dictionary = state["pending_trade"]["offered_card"]
+		var total := _selected_value()
+		_trade_label.text = "Repay the offered value %d with any legal subset." % offered["value"]
+		enabled = !_selected_card_ids.is_empty() and total >= offered["value"]
+		_selection_label.text = "Selected total: %d / %d%s" % [total, offered["value"], _feedback]
+	else:
+		_selection_label.text = _feedback
+		_confirm.disabled = true
+		return
+	_confirm.disabled = !enabled
+
+
+func _confirm_selection() -> void:
+	if _controller == null or _confirm.disabled:
+		return
+	var submitted := false
+	if _is_offer_decision():
+		submitted = _controller.submit_offer(_decision_actor_id, _selected_target_id, _selected_card_ids[0])
+	elif _is_repayment_decision():
+		submitted = _controller.submit_repayment(_decision_actor_id, _selected_card_ids)
+	if submitted:
+		_decision_phase = ""
+		_selected_card_ids.clear()
+		_selected_target_id = -1
+		_render(_last_view)
+
+
+func _on_action_rejected(reason: String) -> void:
+	_feedback = "\n%s" % reason
+	if _last_view != null:
+		_update_action_controls(_last_view.public_state())
+
+
+func _is_offer_decision() -> bool:
+	return _decision_phase == GameModel.PHASE_AWAITING_OFFER
+
+
+func _is_repayment_decision() -> bool:
+	return _decision_phase == GameModel.PHASE_AWAITING_REPAYMENT
+
+
+func _selected_value() -> int:
+	var total := 0
+	for card in _last_view.own_hand():
+		if _selected_card_ids.has(card["id"]):
+			total += card["value"]
+	return total
 
 
 func _clear_container(container: Container) -> void:

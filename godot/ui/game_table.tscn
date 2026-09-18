@@ -86,12 +86,24 @@ theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 14
 
-[node name="TradeStatus" type="Label" parent="Margin/Layout/Main/Center/Trade/Margin"]
+[node name="Content" type="VBoxContainer" parent="Margin/Layout/Main/Center/Trade/Margin"]
+layout_mode = 2
+
+[node name="TradeStatus" type="Label" parent="Margin/Layout/Main/Center/Trade/Margin/Content"]
 layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 20
 text = "Trade floor ready"
+
+[node name="Selection" type="Label" parent="Margin/Layout/Main/Center/Trade/Margin/Content"]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="Confirm" type="Button" parent="Margin/Layout/Main/Center/Trade/Margin/Content"]
+layout_mode = 2
+focus_mode = 0
+text = "Confirm"
 
 [node name="Sidebar" type="VBoxContainer" parent="Margin/Layout/Main"]
 custom_minimum_size = Vector2(310, 0)
