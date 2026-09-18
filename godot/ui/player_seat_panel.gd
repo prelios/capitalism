@@ -16,16 +16,36 @@ func set_public_player(player: Dictionary, is_local: bool, is_current: bool, is_
 	_companies.text = "%d compan%s" % [player["company_ids"].size(), "y" if player["company_ids"].size() == 1 else "ies"]
 	if !player["alive"]:
 		_state.text = "Acquired"
-		self_modulate = Color("8b93a4")
+		_apply_seat_style(Color("26303f"), Color("8b93a4"), Color("354258"))
 	elif is_target:
 		_state.text = "Trade target"
-		self_modulate = Color("f7d774")
+		_apply_seat_style(Color("5a430d"), Color("f7d774"), Color("725712"))
 	elif is_current:
 		_state.text = "Taking turn"
-		self_modulate = Color("78b7ff")
+		_apply_seat_style(Color("2f86dc"), Color("a7d1ff"), Color("4a9ff2"))
 	else:
 		_state.text = "In market"
-		self_modulate = Color.WHITE
+		_apply_seat_style(Color("212e47"), Color("617aad"), Color("2b3c5b"))
+
+
+func _apply_seat_style(background: Color, border: Color, pressed_background: Color) -> void:
+	self_modulate = Color.WHITE
+	seat_background = background
+	add_theme_stylebox_override("normal", _seat_style(background, border))
+	add_theme_stylebox_override("hover", _seat_style(background.lightened(0.1), border.lightened(0.08)))
+	add_theme_stylebox_override("pressed", _seat_style(pressed_background, border.lightened(0.12)))
+
+
+func _seat_style(background: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.border_color = border
+	style.set_border_width_all(2)
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	return style
 
 
 func set_target_selectable(selectable: bool) -> void:
@@ -40,6 +60,10 @@ func is_target_selectable() -> bool:
 	return target_selectable
 
 
+func seat_visual_background() -> Color:
+	return seat_background
+
+
 func _pressed() -> void:
 	if target_selectable:
 		target_selected.emit(player_id)
@@ -48,3 +72,4 @@ signal target_selected(player_id: int)
 
 var player_id := -1
 var target_selectable := false
+var seat_background := Color.TRANSPARENT

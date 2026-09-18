@@ -18,7 +18,7 @@ func _init() -> void:
 	_expect(seats.get_child_count() == 4, "four-seat match did not render four public seat panels")
 	_expect(hand.get_child_count() == 4, "local hand did not render the four private cards")
 	_expect(table.market_status_background().is_equal_approx(Color("173d2b")), "stable market status did not use the green style")
-	_expect((seats.get_child(0) as PlayerSeatPanel).self_modulate.is_equal_approx(Color("78b7ff")), "active player did not use the blue highlight")
+	_expect((seats.get_child(0) as PlayerSeatPanel).seat_visual_background().is_equal_approx(Color("2f86dc")), "active player did not use the explicit blue resting style")
 	_expect(!(seats.get_child(0) as PlayerSeatPanel).disabled, "inactive seat controls should not use desaturating disabled rendering")
 	controller.game.market_stable = false
 	controller.game.unstable_value = 4
