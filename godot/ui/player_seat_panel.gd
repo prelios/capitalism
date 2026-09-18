@@ -11,7 +11,7 @@ class_name PlayerSeatPanel
 
 func set_public_player(player: Dictionary, is_local: bool, is_current: bool, is_target: bool) -> void:
 	player_id = player["player_id"]
-	_identity.text = "Player %d%s" % [player_id, " · You" if is_local else ""]
+	_identity.text = "Player %d%s%s" % [player_id, " · You" if is_local else "", " · Current" if is_current else ""]
 	_hand_count.text = "%d card%s" % [player["hand_size"], "" if player["hand_size"] == 1 else "s"]
 	_companies.text = "%d compan%s" % [player["company_ids"].size(), "y" if player["company_ids"].size() == 1 else "ies"]
 	if !player["alive"]:
@@ -19,7 +19,7 @@ func set_public_player(player: Dictionary, is_local: bool, is_current: bool, is_
 		_apply_seat_style(Color("26303f"), Color("8b93a4"), Color("354258"))
 	elif is_target:
 		_state.text = "Trade target"
-		_apply_seat_style(Color("5a430d"), Color("f7d774"), Color("725712"))
+		_apply_seat_style(Color("6a1e28"), Color("ff6b78"), Color("8f2937"))
 	elif is_current:
 		_state.text = "Taking turn"
 		_apply_seat_style(Color("2f86dc"), Color("a7d1ff"), Color("4a9ff2"))
@@ -54,6 +54,9 @@ func set_target_selectable(selectable: bool) -> void:
 	focus_mode = Control.FOCUS_ALL if selectable else Control.FOCUS_NONE
 	mouse_filter = Control.MOUSE_FILTER_STOP if selectable else Control.MOUSE_FILTER_IGNORE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if selectable else Control.CURSOR_ARROW
+	if selectable and _state.text != "Trade target":
+		add_theme_stylebox_override("hover", _seat_style(Color("5a430d"), Color("f7d774")))
+		add_theme_stylebox_override("pressed", _seat_style(Color("725712"), Color("f7d774")))
 
 
 func is_target_selectable() -> bool:

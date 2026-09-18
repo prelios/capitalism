@@ -39,6 +39,7 @@ func _test_human_offer() -> void:
 	_expect((seats.get_child(1) as PlayerSeatPanel).is_target_selectable(), "living opponent target was not selectable on the human turn")
 	(hand.get_child(0) as CardView).button_pressed = true
 	(seats.get_child(1) as PlayerSeatPanel)._pressed()
+	_expect((seats.get_child(1) as PlayerSeatPanel).seat_visual_background().is_equal_approx(Color("6a1e28")), "selected trade target did not use the dedicated red style")
 	_expect(!confirm.disabled, "complete offer selection did not enable confirmation")
 	confirm.emit_signal("pressed")
 	await process_frame
