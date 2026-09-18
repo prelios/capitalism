@@ -3,7 +3,8 @@ extends RefCounted
 class_name Card
 
 
-const SUITS: Array[String] = ["Money", "Workers", "Tech", "Hype"]
+const SUITS: Array[String] = ["♠", "♥", "♣", "♦"]
+#const SUITS: Array[String] = ["Money", "Workers", "Tech", "Hype"]
 
 
 var id: String
