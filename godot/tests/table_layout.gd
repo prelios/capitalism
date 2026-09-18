@@ -15,19 +15,16 @@ func _init() -> void:
 	var table := controller.get_node("GameTable") as GameTable
 	var seats := table.get_node("Margin/Layout/Main/Center/SeatScroll/Seats") as FlowContainer
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
-	var turn_status := table.get_node("Margin/Layout/Header/Margin/Content/TurnStatus") as PanelContainer
-	var market_tracker := table.get_node("Margin/Layout/Main/Sidebar/Market") as PanelContainer
 	_expect(seats.get_child_count() == 4, "four-seat match did not render four public seat panels")
 	_expect(hand.get_child_count() == 4, "local hand did not render the four private cards")
-	_expect((turn_status.get_theme_stylebox("panel") as StyleBoxFlat).bg_color.is_equal_approx(Color("173d2b")), "stable turn status did not use the green market style")
-	_expect((market_tracker.get_theme_stylebox("panel") as StyleBoxFlat).bg_color.is_equal_approx(Color("173d2b")), "stable market tracker did not use the green market style")
+	_expect(table.market_status_background().is_equal_approx(Color("173d2b")), "stable market status did not use the green style")
 	_expect((seats.get_child(0) as PlayerSeatPanel).self_modulate.is_equal_approx(Color("78b7ff")), "active player did not use the blue highlight")
+	_expect(!(seats.get_child(0) as PlayerSeatPanel).disabled, "inactive seat controls should not use desaturating disabled rendering")
 	controller.game.market_stable = false
 	controller.game.unstable_value = 4
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame
-	_expect((turn_status.get_theme_stylebox("panel") as StyleBoxFlat).bg_color.is_equal_approx(Color("4d3d0c")), "unstable turn status did not use the yellow market style")
-	_expect((market_tracker.get_theme_stylebox("panel") as StyleBoxFlat).bg_color.is_equal_approx(Color("4d3d0c")), "unstable market tracker did not use the yellow market style")
+	_expect(table.market_status_background().is_equal_approx(Color("4d3d0c")), "unstable market status did not use the yellow style")
 	var first_card := hand.get_child(0) as CardView
 	first_card.button_pressed = true
 	var selected_id := first_card.card_id

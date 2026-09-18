@@ -14,6 +14,7 @@ var _decision_actor_id := -1
 var _decision_phase := ""
 var _selected_target_id := -1
 var _feedback := ""
+var _market_background := Color.TRANSPARENT
 
 @onready var _turn_status: PanelContainer = $Margin/Layout/Header/Margin/Content/TurnStatus
 @onready var _turn_label: Label = $Margin/Layout/Header/Margin/Content/TurnStatus/Turn
@@ -170,7 +171,12 @@ func _apply_market_state_style(stable: bool) -> void:
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10
 	style.corner_radius_bottom_right = 10
+	_market_background = background
 	_market_tracker.add_theme_stylebox_override("panel", style)
+
+
+func market_status_background() -> Color:
+	return _market_background
 
 
 func _event_summary(event: Dictionary) -> String:

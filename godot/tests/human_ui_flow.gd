@@ -36,7 +36,7 @@ func _test_human_offer() -> void:
 	var seats := table.get_node("Margin/Layout/Main/Center/SeatScroll/Seats") as FlowContainer
 	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button
 	_expect(confirm.disabled, "offer confirmation began enabled")
-	_expect(!(seats.get_child(1) as PlayerSeatPanel).disabled, "living opponent target was disabled on the human turn")
+	_expect((seats.get_child(1) as PlayerSeatPanel).is_target_selectable(), "living opponent target was not selectable on the human turn")
 	(hand.get_child(0) as CardView).button_pressed = true
 	(seats.get_child(1) as PlayerSeatPanel)._pressed()
 	_expect(!confirm.disabled, "complete offer selection did not enable confirmation")
