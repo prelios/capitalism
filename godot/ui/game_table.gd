@@ -170,8 +170,6 @@ func _apply_market_state_style(stable: bool) -> void:
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10
 	style.corner_radius_bottom_right = 10
-	_turn_status.add_theme_stylebox_override("panel", style)
-	_market_status.add_theme_stylebox_override("panel", style)
 	_market_tracker.add_theme_stylebox_override("panel", style)
 
 
