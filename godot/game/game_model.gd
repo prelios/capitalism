@@ -349,7 +349,14 @@ func public_snapshot() -> Dictionary:
 	var seats: Array[Dictionary] = []
 	for player in players:
 		seats.append({"player_id": player.id, "seat": player.seat, "alive": player.alive, "hand_size": player.hand.size(), "company_ids": player.owned_company_ids.duplicate()})
-	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "players": seats}
+	var trade: Dictionary = {}
+	if pending_trade != null:
+		trade = {
+			"actor_id": pending_trade.actor_id,
+			"target_id": pending_trade.target_id,
+			"offered_card": public_card(pending_trade.offered_card)
+		}
+	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "pending_trade": trade, "players": seats}
 
 
 func player_view(requester_id: int) -> PlayerView:

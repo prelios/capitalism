@@ -2,11 +2,15 @@
 
 [ext_resource type="Script" uid="uid://75qjidxh85hi" path="res://game/game_controller.gd" id="1_3iy47"]
 [ext_resource type="Script" uid="uid://cxa8toxl5w6g0" path="res://debug_log_panel.gd" id="2_soqow"]
+[ext_resource type="PackedScene" path="res://ui/game_table.tscn" id="3_table"]
 
 [node name="GameController" type="Node" unique_id=1621176932]
 script = ExtResource("1_3iy47")
 
+[node name="GameTable" parent="." instance=ExtResource("3_table")]
+
 [node name="DebugLogPanel" type="Panel" parent="." unique_id=843706736]
+visible = false
 offset_left = 1.0
 offset_top = 125.0
 offset_right = 1148.0
