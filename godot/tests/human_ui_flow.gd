@@ -8,6 +8,7 @@ func _init() -> void:
 	await _test_human_offer()
 	await _test_human_overpayment()
 	await _test_insufficient_repayment_selection()
+	await _test_duplicate_values_repayment()
 	if failures.is_empty():
 		print("Human UI flow checks passed.")
 		quit(0)
@@ -82,6 +83,23 @@ func _test_insufficient_repayment_selection() -> void:
 	_expect(confirm.disabled, "insufficient repayment selection enabled confirmation")
 	(hand.get_child(1) as CardView).button_pressed = true
 	_expect(!confirm.disabled, "legal multi-card repayment remained disabled")
+	controller.queue_free()
+
+
+func _test_duplicate_values_repayment() -> void:
+	var controller := await _new_controller()
+	controller.fast_headless = false
+	controller.ai_delay_seconds = 0.02
+	controller.restart_game([1], 2)
+	controller.game.players[0].hand = [Card.new("duplicate-a", 2, "Money"), Card.new("duplicate-b", 2, "Workers")]
+	controller.game.players[1].hand = [Card.new("ai-offer", 4, "Tech")]
+	await create_timer(0.05).timeout
+	var table := controller.get_node("GameTable") as GameTable
+	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
+	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button
+	(hand.get_child(0) as CardView).button_pressed = true
+	(hand.get_child(1) as CardView).button_pressed = true
+	_expect(!confirm.disabled and table.selected_card_ids().size() == 2, "duplicate-valued cards were not independently selectable")
 	controller.queue_free()
 
 
