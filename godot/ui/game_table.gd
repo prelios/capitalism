@@ -61,7 +61,7 @@ func _render_seats(players: Array[Dictionary], state: Dictionary, local_player_i
 		var seat := PLAYER_SEAT_SCENE.instantiate() as PlayerSeatPanel
 		_seats.add_child(seat)
 		seat.set_public_player(player, player["player_id"] == local_player_id, player["player_id"] == state["current_player_id"], player["player_id"] == target_id)
-		seat.set_target_selectable(_is_offer_decision() and player["alive"] and player["player_id"] != _decision_actor_id)
+		seat.set_target_selectable(_is_offer_decision() and player["alive"] and player["player_id"] != local_player_id)
 		seat.target_selected.connect(_on_target_selected)
 
 
@@ -166,9 +166,9 @@ func _confirm_selection() -> void:
 		return
 	var submitted := false
 	if _is_offer_decision():
-		submitted = _controller.submit_offer(_decision_actor_id, _selected_target_id, _selected_card_ids[0])
+		submitted = _controller.submit_offer(_local_actor_id(), _selected_target_id, _selected_card_ids[0])
 	elif _is_repayment_decision():
-		submitted = _controller.submit_repayment(_decision_actor_id, _selected_card_ids)
+		submitted = _controller.submit_repayment(_local_actor_id(), _selected_card_ids)
 	if submitted:
 		_decision_phase = ""
 		_selected_card_ids.clear()
@@ -183,11 +183,22 @@ func _on_action_rejected(reason: String) -> void:
 
 
 func _is_offer_decision() -> bool:
-	return _decision_phase == GameModel.PHASE_AWAITING_OFFER
+	if _last_view == null:
+		return _decision_phase == GameModel.PHASE_AWAITING_OFFER
+	var state := _last_view.public_state()
+	return state["phase"] == GameModel.PHASE_AWAITING_OFFER and state["current_player_id"] == _last_view.requester_id
 
 
 func _is_repayment_decision() -> bool:
-	return _decision_phase == GameModel.PHASE_AWAITING_REPAYMENT
+	if _last_view == null:
+		return _decision_phase == GameModel.PHASE_AWAITING_REPAYMENT
+	var state := _last_view.public_state()
+	var trade: Dictionary = state["pending_trade"]
+	return state["phase"] == GameModel.PHASE_AWAITING_REPAYMENT and !trade.is_empty() and trade["target_id"] == _last_view.requester_id
+
+
+func _local_actor_id() -> int:
+	return _last_view.requester_id if _last_view != null else _decision_actor_id
 
 
 func _selected_value() -> int:
