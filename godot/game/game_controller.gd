@@ -14,6 +14,7 @@ var policy_rng := RandomNumberGenerator.new()
 var match_generation := 0
 var ai_delay_seconds := 0.25
 var fast_headless := true
+var fast_forward := false
 
 signal decision_requested(actor_id: int, phase: String, view: PlayerView)
 signal action_resolved
@@ -70,7 +71,7 @@ func _resolve_repayment(generation: int) -> bool:
 
 
 func _wait_for_ai(generation: int) -> bool:
-	if !fast_headless or !OS.has_feature("headless"):
+	if !fast_forward and (!fast_headless or !OS.has_feature("headless")):
 		await get_tree().create_timer(ai_delay_seconds).timeout
 	return generation == match_generation and !game.game_finished
 
@@ -112,6 +113,15 @@ func _ready() -> void:
 
 func start_game() -> void:
 	restart_game([local_player_id])
+
+
+func start_rematch() -> void:
+	fast_forward = false
+	restart_game([local_player_id])
+
+
+func set_fast_forward(enabled: bool) -> void:
+	fast_forward = enabled
 
 
 func restart_game(human_player_ids: Array[int] = [], starting_player_id := -1) -> void:

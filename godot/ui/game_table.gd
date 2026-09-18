@@ -25,6 +25,11 @@ var _feedback := ""
 @onready var _history: RichTextLabel = $Margin/Layout/Main/Sidebar/History/Margin/Content
 @onready var _hand_title: Label = $Margin/Layout/Hand/Margin/Content/Title
 @onready var _hand: FlowContainer = $Margin/Layout/Hand/Margin/Content/HandScroll/Hand
+@onready var _result: PanelContainer = $Result
+@onready var _result_title: Label = $Result/Margin/Content/Title
+@onready var _result_detail: Label = $Result/Margin/Content/Detail
+@onready var _fast_forward: Button = $Result/Margin/Content/FastForward
+@onready var _rematch: Button = $Result/Margin/Content/Rematch
 
 
 func bind_controller(controller: GameController) -> void:
@@ -34,6 +39,8 @@ func bind_controller(controller: GameController) -> void:
 	_controller.decision_requested.connect(_on_decision_requested)
 	_controller.action_rejected.connect(_on_action_rejected)
 	_confirm.pressed.connect(_confirm_selection)
+	_fast_forward.pressed.connect(_on_fast_forward)
+	_rematch.pressed.connect(_on_rematch)
 
 
 func selected_card_ids() -> Array[String]:
@@ -51,6 +58,7 @@ func _render(view: PlayerView) -> void:
 	_render_history(view.public_history())
 	_render_hand(view.own_hand())
 	_update_action_controls(state)
+	_render_result(state, view.requester_id)
 
 
 func _render_seats(players: Array[Dictionary], state: Dictionary, local_player_id: int) -> void:
@@ -95,6 +103,41 @@ func _render_history(events: Array[Dictionary]) -> void:
 		lines.append(_event_summary(event))
 	_history.text = "\n".join(lines)
 	_history.scroll_to_line(max(0, _history.get_line_count() - 1))
+
+
+func _render_result(state: Dictionary, local_player_id: int) -> void:
+	var local_alive := false
+	for player: Dictionary in state["players"]:
+		if player["player_id"] == local_player_id:
+			local_alive = player["alive"]
+	if state["game_finished"]:
+		_result.visible = true
+		_fast_forward.visible = false
+		_result_title.text = state["ending"]
+		if state["ending"] == "Global Economic Meltdown":
+			_result_detail.text = "The crash eliminated every company. There are no winners."
+		else:
+			_result_detail.text = "Winner%s: %s" % ["" if state["winner_ids"].size() == 1 else "s", _player_list(state["winner_ids"])]
+		return
+	if !local_alive:
+		_result.visible = true
+		_result_title.text = "Your company was acquired"
+		_result_detail.text = "You can watch the remaining companies or immediately begin a new match."
+		_fast_forward.visible = true
+	else:
+		_result.visible = false
+
+
+func _on_fast_forward() -> void:
+	if _controller != null:
+		_controller.set_fast_forward(true)
+		_fast_forward.disabled = true
+		_fast_forward.text = "Fast-forwarding…"
+
+
+func _on_rematch() -> void:
+	if _controller != null:
+		_controller.start_rematch()
 
 
 func _latest_public_update() -> String:

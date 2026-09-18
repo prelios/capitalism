@@ -37,6 +37,8 @@ var warning_turns_per_survivor: int
 var boredom_multiplier: int
 var market_stable := true
 var game_finished := false
+var ending := ""
+var winner_ids: Array[int] = []
 var _public_history: Array[Dictionary] = []
 
 
@@ -328,9 +330,13 @@ func finish_game(ending: String, winners: Array[Player]) -> void:
 	if game_finished:
 		return
 	game_finished = true
+	self.ending = ending
+	winner_ids.clear()
+	for winner in winners:
+		winner_ids.append(winner.id)
 	phase = PHASE_FINISHED
 	pending_trade = null
-	record_public_event("game_finished", {"ending": ending, "winner_ids": winners.map(func(player: Player): return player.id)})
+	record_public_event("game_finished", {"ending": ending, "winner_ids": winner_ids.duplicate()})
 	game_over.emit(ending, winners)
 
 
@@ -356,7 +362,7 @@ func public_snapshot() -> Dictionary:
 			"target_id": pending_trade.target_id,
 			"offered_card": public_card(pending_trade.offered_card)
 		}
-	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "pending_trade": trade, "players": seats}
+	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "pending_trade": trade, "game_finished": game_finished, "ending": ending, "winner_ids": winner_ids.duplicate(), "players": seats}
 
 
 func player_view(requester_id: int) -> PlayerView:
