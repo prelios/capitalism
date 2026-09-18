@@ -1,16 +1,4 @@
-[gd_resource type="Theme" load_steps=4 format=3]
-
-[sub_resource type="StyleBoxFlat" id="Panel"]
-bg_color = Color(0.075, 0.102, 0.16, 0.96)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.25, 0.33, 0.48, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[gd_resource type="Theme" format=3 uid="uid://ddpelfcpfeibm"]
 
 [sub_resource type="StyleBoxFlat" id="ButtonNormal"]
 bg_color = Color(0.13, 0.18, 0.28, 1)
@@ -36,10 +24,24 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
+[sub_resource type="StyleBoxFlat" id="Panel"]
+bg_color = Color(0.075, 0.102, 0.16, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.33, 0.48, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [resource]
 default_font_size = 16
-Label/colors/font_color = Color(0.9, 0.93, 0.98, 1)
-PanelContainer/styles/panel = SubResource("Panel")
 Button/colors/font_color = Color(0.92, 0.95, 1, 1)
+Button/font_sizes/font_size = 40
 Button/styles/normal = SubResource("ButtonNormal")
 Button/styles/pressed = SubResource("ButtonPressed")
+Label/colors/font_color = Color(0.9, 0.93, 0.98, 1)
+Label/font_sizes/font_size = 40
+PanelContainer/styles/panel = SubResource("Panel")

@@ -7,7 +7,7 @@
 [node name="GameController" type="Node" unique_id=1621176932]
 script = ExtResource("1_3iy47")
 
-[node name="GameTable" parent="." instance=ExtResource("3_table")]
+[node name="GameTable" parent="." unique_id=1924914858 instance=ExtResource("3_table")]
 
 [node name="DebugLogPanel" type="Panel" parent="." unique_id=843706736]
 visible = false
