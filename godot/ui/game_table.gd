@@ -34,6 +34,12 @@ var _market_background := Color.TRANSPARENT
 @onready var _result_detail: Label = $Result/Margin/Content/Detail
 @onready var _fast_forward: Button = $Result/Margin/Content/FastForward
 @onready var _rematch: Button = $Result/Margin/Content/Rematch
+@onready var _main_menu: Control = $MainMenu
+@onready var _player_count: SpinBox = $MainMenu/Panel/Margin/Content/PlayerCount
+@onready var _start_match: Button = $MainMenu/Panel/Margin/Content/StartMatch
+@onready var _restart: Button = $Margin/Layout/Header/Margin/Content/Controls/Restart
+@onready var _menu: Button = $Margin/Layout/Header/Margin/Content/Controls/Menu
+@onready var _result_menu: Button = $Result/Margin/Content/MainMenu
 
 
 func bind_controller(controller: GameController) -> void:
@@ -45,6 +51,19 @@ func bind_controller(controller: GameController) -> void:
 	_confirm.pressed.connect(_confirm_selection)
 	_fast_forward.pressed.connect(_on_fast_forward)
 	_rematch.pressed.connect(_on_rematch)
+	_start_match.pressed.connect(_on_start_match)
+	_restart.pressed.connect(_on_rematch)
+	_menu.pressed.connect(_on_main_menu)
+	_result_menu.pressed.connect(_on_main_menu)
+
+
+func show_main_menu(player_count := 4) -> void:
+	_player_count.value = player_count
+	_main_menu.visible = true
+
+
+func show_match() -> void:
+	_main_menu.visible = false
 
 
 func selected_card_ids() -> Array[String]:
@@ -143,6 +162,16 @@ func _on_fast_forward() -> void:
 func _on_rematch() -> void:
 	if _controller != null:
 		_controller.start_rematch()
+
+
+func _on_start_match() -> void:
+	if _controller != null:
+		_controller.start_match(int(_player_count.value))
+
+
+func _on_main_menu() -> void:
+	if _controller != null:
+		_controller.return_to_main_menu()
 
 
 func _latest_public_update() -> String:

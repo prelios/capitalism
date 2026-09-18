@@ -60,6 +60,7 @@ vertical_alignment = 1
 
 [node name="MarketStatus" type="PanelContainer" parent="Margin/Layout/Header/Margin/Content" unique_id=1123307909]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBoxEmpty_xu7lg")
 
 [node name="Market" type="Label" parent="Margin/Layout/Header/Margin/Content/MarketStatus" unique_id=850210501]
@@ -68,6 +69,22 @@ theme_override_font_sizes/font_size = 22
 text = "Market"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Controls" type="HBoxContainer" parent="Margin/Layout/Header/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Restart" type="Button" parent="Margin/Layout/Header/Margin/Content/Controls"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Restart match"
+
+[node name="Menu" type="Button" parent="Margin/Layout/Header/Margin/Content/Controls"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Main menu"
 
 [node name="Main" type="HBoxContainer" parent="Margin/Layout" unique_id=843607115]
 custom_minimum_size = Vector2(0, 410)
@@ -233,3 +250,75 @@ text = "Fast-forward spectators"
 [node name="Rematch" type="Button" parent="Result/Margin/Content" unique_id=198230887]
 layout_mode = 2
 text = "Start a new match"
+
+[node name="MainMenu" type="Button" parent="Result/Margin/Content"]
+layout_mode = 2
+text = "Main menu"
+
+[node name="MainMenu" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Panel" type="PanelContainer" parent="MainMenu"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -200.0
+offset_right = 300.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="MainMenu/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 28
+
+[node name="Content" type="VBoxContainer" parent="MainMenu/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="MainMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Capitalism With Cards"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="MainMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Set up a local playtest match. You play as Player 1."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="PlayerCountLabel" type="Label" parent="MainMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Players (4–10)"
+
+[node name="PlayerCount" type="SpinBox" parent="MainMenu/Panel/Margin/Content"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+min_value = 4.0
+max_value = 10.0
+step = 1.0
+value = 4.0
+rounded = true
+allow_greater = false
+allow_lesser = false
+
+[node name="StartMatch" type="Button" parent="MainMenu/Panel/Margin/Content"]
+layout_mode = 2
+text = "Start match"

@@ -2,15 +2,17 @@ extends Resource
 
 class_name MatchConfig
 
+const MIN_PLAYERS := 4
+const MAX_PLAYERS := 10
 
-@export_range(4, 10) var player_count := 4
+@export_range(MIN_PLAYERS, MAX_PLAYERS) var player_count := MIN_PLAYERS
 @export_range(1, 10) var warning_turns_per_survivor := 1
 @export_range(1, 100) var boredom_multiplier := 10
 @export var rng_seed := 1
 
 
 func validation_error() -> String:
-	if player_count < 4 or player_count > 10:
+	if player_count < MIN_PLAYERS or player_count > MAX_PLAYERS:
 		return "Player count must be between 4 and 10."
 	if warning_turns_per_survivor < 1:
 		return "Warning turns per survivor must be at least 1."

@@ -5,7 +5,7 @@ class_name GameController
 # Constants
 const NUM_PLAYERS := 4
 
-@export var auto_start := true
+@export var auto_start := false
 
 # Vars
 var game: GameModel
@@ -15,6 +15,8 @@ var match_generation := 0
 var ai_delay_seconds := 0.25
 var fast_headless := true
 var fast_forward := false
+var selected_player_count := NUM_PLAYERS
+var _main_menu_open := true
 
 signal decision_requested(actor_id: int, phase: String, view: PlayerView)
 signal action_resolved
@@ -107,17 +109,39 @@ func submit_repayment(actor_id: int, card_ids: Array[String], generation := matc
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	$GameTable.bind_controller(self)
-	if auto_start:
+	if auto_start and _main_menu_open:
 		start_game()
+	elif _main_menu_open:
+		$GameTable.show_main_menu()
 
 
 func start_game() -> void:
+	start_match(selected_player_count)
+
+
+func start_match(player_count: int) -> void:
+	if player_count < MatchConfig.MIN_PLAYERS or player_count > MatchConfig.MAX_PLAYERS:
+		return
+	selected_player_count = player_count
+	fast_forward = false
+	_main_menu_open = false
 	restart_game([local_player_id])
 
 
 func start_rematch() -> void:
 	fast_forward = false
+	_main_menu_open = false
 	restart_game([local_player_id])
+
+
+func return_to_main_menu() -> void:
+	match_generation += 1
+	fast_forward = false
+	_main_menu_open = true
+	_disconnect_game()
+	action_resolved.emit()
+	if $GameTable.is_node_ready():
+		$GameTable.show_main_menu(selected_player_count)
 
 
 func set_fast_forward(enabled: bool) -> void:
@@ -127,7 +151,11 @@ func set_fast_forward(enabled: bool) -> void:
 func restart_game(human_player_ids: Array[int] = [], starting_player_id := -1) -> void:
 	match_generation += 1
 	_disconnect_game()
+	action_resolved.emit()
 	setup_game()
+	_main_menu_open = false
+	if $GameTable.is_node_ready():
+		$GameTable.show_match()
 	local_player_id = human_player_ids[0] if !human_player_ids.is_empty() else 1
 	for player_id in human_player_ids:
 		assign_human(player_id)
@@ -181,7 +209,7 @@ func _disconnect_game() -> void:
 
 
 func setup_game() -> void:
-	self.game = GameModel.new(MatchConfig.for_player_count(NUM_PLAYERS, 1))
+	self.game = GameModel.new(MatchConfig.for_player_count(selected_player_count, 1))
 	policy_rng.seed = game.config.rng_seed + 1
 	policies.clear()
 	for player in game.players:
