@@ -15,13 +15,16 @@ var _decision_phase := ""
 var _selected_target_id := -1
 var _feedback := ""
 
-@onready var _turn_label: Label = $Margin/Layout/Header/Margin/Content/Turn
-@onready var _market_label: Label = $Margin/Layout/Header/Margin/Content/Market
+@onready var _turn_status: PanelContainer = $Margin/Layout/Header/Margin/Content/TurnStatus
+@onready var _turn_label: Label = $Margin/Layout/Header/Margin/Content/TurnStatus/Turn
+@onready var _market_status: PanelContainer = $Margin/Layout/Header/Margin/Content/MarketStatus
+@onready var _market_label: Label = $Margin/Layout/Header/Margin/Content/MarketStatus/Market
 @onready var _seats: FlowContainer = $Margin/Layout/Main/Center/SeatScroll/Seats
 @onready var _trade_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/TradeStatus
 @onready var _selection_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/Selection
 @onready var _confirm: Button = $Margin/Layout/Main/Center/Trade/Margin/Content/Confirm
 @onready var _market_detail: Label = $Margin/Layout/Main/Sidebar/Market/Margin/Content
+@onready var _market_tracker: PanelContainer = $Margin/Layout/Main/Sidebar/Market
 @onready var _history: RichTextLabel = $Margin/Layout/Main/Sidebar/History/Margin/Content
 @onready var _hand_title: Label = $Margin/Layout/Hand/Margin/Content/Title
 @onready var _hand: FlowContainer = $Margin/Layout/Hand/Margin/Content/HandScroll/Hand
@@ -53,6 +56,7 @@ func _render(view: PlayerView) -> void:
 	_turn_label.text = "Turn %d · Player %d" % [state["turn"], state["current_player_id"]]
 	_market_label.text = "Market stable" if state["market_stable"] else "Instability: value %d" % state["unstable_value"]
 	_market_detail.text = _market_description(state)
+	_apply_market_state_style(state["market_stable"])
 	_render_seats(view.players(), state, view.requester_id)
 	_render_trade(state)
 	_render_history(view.public_history())
@@ -153,6 +157,22 @@ func _market_description(state: Dictionary) -> String:
 	if state["market_stable"]:
 		return "Stable market\nHighest active value: %d" % state["max_value"]
 	return "Warning for value %d\n%d completed turns remaining" % [state["unstable_value"], state["turns_remaining"]]
+
+
+func _apply_market_state_style(stable: bool) -> void:
+	var background := Color("173d2b") if stable else Color("4d3d0c")
+	var border := Color("42d392") if stable else Color("f2c94c")
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.border_color = border
+	style.set_border_width_all(3)
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	_turn_status.add_theme_stylebox_override("panel", style)
+	_market_status.add_theme_stylebox_override("panel", style)
+	_market_tracker.add_theme_stylebox_override("panel", style)
 
 
 func _event_summary(event: Dictionary) -> String:

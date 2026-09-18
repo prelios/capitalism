@@ -22,7 +22,7 @@ func set_public_player(player: Dictionary, is_local: bool, is_current: bool, is_
 		self_modulate = Color("f7d774")
 	elif is_current:
 		_state.text = "Taking turn"
-		self_modulate = Color("a7e9c4")
+		self_modulate = Color("78b7ff")
 	else:
 		_state.text = "In market"
 		self_modulate = Color.WHITE
