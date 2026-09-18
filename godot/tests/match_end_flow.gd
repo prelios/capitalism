@@ -17,10 +17,12 @@ func _init() -> void:
 	var fast_forward := result.get_node("Margin/Content/FastForward") as Button
 	var main_menu := table.get_node("MainMenu") as Control
 	var start_match := table.get_node("MainMenu/Panel/Margin/Content/StartMatch") as Button
+	var ai_pacing := table.get_node("MainMenu/Panel/Margin/Content/AIPacing") as CheckButton
 	_expect(main_menu.visible, "game launch did not show the player-count menu")
 	start_match.emit_signal("pressed")
 	await process_frame
 	_expect(!main_menu.visible and controller.game.config.player_count == 4, "main menu did not start the selected player-count match")
+	_expect(ai_pacing.button_pressed and controller.ai_turn_pacing_enabled and is_equal_approx(controller.ai_delay_seconds, 2.0), "default AI pacing was not configured for the playtest delay")
 	controller.game.players[0].die()
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	_expect(result.visible and title.text == "Your company was acquired" and fast_forward.visible, "human elimination did not enter spectator mode")
@@ -44,9 +46,10 @@ func _init() -> void:
 	_expect(main_menu.visible, "main menu was unavailable during spectator mode")
 	var count_picker := table.get_node("MainMenu/Panel/Margin/Content/PlayerCount") as SpinBox
 	count_picker.value = 6
+	ai_pacing.button_pressed = false
 	start_match.emit_signal("pressed")
 	await process_frame
-	_expect(controller.game.config.player_count == 6 and !main_menu.visible, "main menu did not apply a new player count")
+	_expect(controller.game.config.player_count == 6 and !main_menu.visible and !controller.ai_turn_pacing_enabled, "main menu did not apply the player count and AI pacing settings")
 	var header_restart := table.get_node("Margin/Layout/Header/Margin/Content/Controls/Restart") as Button
 	header_restart.emit_signal("pressed")
 	await process_frame

@@ -36,6 +36,7 @@ var _market_background := Color.TRANSPARENT
 @onready var _rematch: Button = $Result/Margin/Content/Rematch
 @onready var _main_menu: Control = $MainMenu
 @onready var _player_count: SpinBox = $MainMenu/Panel/Margin/Content/PlayerCount
+@onready var _ai_pacing: CheckButton = $MainMenu/Panel/Margin/Content/AIPacing
 @onready var _start_match: Button = $MainMenu/Panel/Margin/Content/StartMatch
 @onready var _restart: Button = $Margin/Layout/Header/Margin/Content/Controls/Restart
 @onready var _menu: Button = $Margin/Layout/Header/Margin/Content/Controls/Menu
@@ -59,6 +60,10 @@ func bind_controller(controller: GameController) -> void:
 
 func show_main_menu(player_count := 4) -> void:
 	_player_count.value = player_count
+	_player_count.get_line_edit().add_theme_font_size_override("font_size", 32)
+	_player_count.get_line_edit().alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if _controller != null:
+		_ai_pacing.button_pressed = _controller.ai_turn_pacing_enabled
 	_main_menu.visible = true
 
 
@@ -166,6 +171,7 @@ func _on_rematch() -> void:
 
 func _on_start_match() -> void:
 	if _controller != null:
+		_controller.set_ai_turn_pacing(_ai_pacing.button_pressed)
 		_controller.start_match(int(_player_count.value))
 
 

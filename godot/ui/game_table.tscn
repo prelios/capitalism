@@ -272,9 +272,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -300.0
-offset_top = -200.0
+offset_top = -340.0
 offset_right = 300.0
-offset_bottom = 200.0
+offset_bottom = 340.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -298,7 +298,14 @@ horizontal_alignment = 1
 [node name="Description" type="Label" parent="MainMenu/Panel/Margin/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Set up a local playtest match. You play as Player 1."
+text = "You are Player 1. On your turn, offer one card to another living company. The target must return one or more cards worth at least as much; otherwise you acquire its company and every card it holds."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Rules" type="Label" parent="MainMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Acquisitions make the market unstable. When its warning ends, every highest-value card is destroyed. Win by becoming the sole surviving company; two fully diversified survivors can share a duopoly."
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -308,9 +315,9 @@ theme_override_font_sizes/font_size = 22
 text = "Players (4–10)"
 
 [node name="PlayerCount" type="SpinBox" parent="MainMenu/Panel/Margin/Content"]
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 32
 min_value = 4.0
 max_value = 10.0
 step = 1.0
@@ -318,6 +325,12 @@ value = 4.0
 rounded = true
 allow_greater = false
 allow_lesser = false
+
+[node name="AIPacing" type="CheckButton" parent="MainMenu/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+button_pressed = true
+text = "Show AI turns (2-second pace)"
 
 [node name="StartMatch" type="Button" parent="MainMenu/Panel/Margin/Content"]
 layout_mode = 2

@@ -4,6 +4,7 @@ class_name GameController
 
 # Constants
 const NUM_PLAYERS := 4
+const PLAYTEST_AI_DELAY_SECONDS := 2.0
 
 @export var auto_start := false
 
@@ -12,9 +13,10 @@ var game: GameModel
 var policies: Dictionary[int, PlayerPolicy] = {}
 var policy_rng := RandomNumberGenerator.new()
 var match_generation := 0
-var ai_delay_seconds := 0.25
+var ai_delay_seconds := PLAYTEST_AI_DELAY_SECONDS
 var fast_headless := true
 var fast_forward := false
+var ai_turn_pacing_enabled := true
 var selected_player_count := NUM_PLAYERS
 var _main_menu_open := true
 
@@ -73,7 +75,7 @@ func _resolve_repayment(generation: int) -> bool:
 
 
 func _wait_for_ai(generation: int) -> bool:
-	if !fast_forward and (!fast_headless or !OS.has_feature("headless")):
+	if ai_turn_pacing_enabled and !fast_forward and (!fast_headless or !OS.has_feature("headless")):
 		await get_tree().create_timer(ai_delay_seconds).timeout
 	return generation == match_generation and !game.game_finished
 
@@ -146,6 +148,10 @@ func return_to_main_menu() -> void:
 
 func set_fast_forward(enabled: bool) -> void:
 	fast_forward = enabled
+
+
+func set_ai_turn_pacing(enabled: bool) -> void:
+	ai_turn_pacing_enabled = enabled
 
 
 func restart_game(human_player_ids: Array[int] = [], starting_player_id := -1) -> void:
