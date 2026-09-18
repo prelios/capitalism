@@ -18,9 +18,11 @@ func _init() -> void:
 	_expect(seats.get_child_count() == 4, "four-seat match did not render four public seat panels")
 	_expect(hand.get_child_count() == 4, "local hand did not render the four private cards")
 	_expect(table.market_status_background().is_equal_approx(Color("173d2b")), "stable market status did not use the green style")
-	_expect((seats.get_child(0) as PlayerSeatPanel).seat_visual_background().is_equal_approx(Color("2f86dc")), "active player did not use the explicit blue resting style")
-	_expect((seats.get_child(0) as PlayerSeatPanel).get_node("Margin/Content/Identity").text.contains("Current"), "active player identity did not include the Current label")
-	_expect(!(seats.get_child(0) as PlayerSeatPanel).disabled, "inactive seat controls should not use desaturating disabled rendering")
+	var active_seat := seats.get_child(0) as PlayerSeatPanel
+	_expect(active_seat.seat_visual_background().is_equal_approx(Color("2f86dc")), "active player did not use the explicit blue resting style")
+	_expect(active_seat.get_node("Margin/Content/Identity").text.contains("Current"), "active player identity did not include the Current label")
+	_expect(active_seat.get_global_rect().encloses((active_seat.get_node("Margin/Content") as VBoxContainer).get_global_rect()), "player seat content exceeded its visual panel")
+	_expect(!active_seat.disabled, "inactive seat controls should not use desaturating disabled rendering")
 	controller.game.market_stable = false
 	controller.game.unstable_value = 4
 	controller.presentation_updated.emit(controller.game.player_view(1))
