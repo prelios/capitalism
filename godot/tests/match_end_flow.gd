@@ -71,7 +71,7 @@ func _init() -> void:
 	await process_frame
 	controller.game.finish_game("Monopoly", [controller.game.players[1]])
 	controller.presentation_updated.emit(controller.game.player_view(1))
-	_expect(result.visible and title.text == "Monopoly" and detail.text.contains("P2"), "monopoly winner was not presented")
+	_expect(result.visible and title.text == "Monopoly" and detail.text.contains(controller.game.players[1].company_name), "monopoly winner was not presented")
 	if failures.is_empty():
 		print("Match end flow checks passed.")
 		quit(0)

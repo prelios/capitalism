@@ -88,7 +88,7 @@ func _render(view: PlayerView) -> void:
 	_apply_market_state_style(state["market_stable"])
 	_render_seats(view.players(), state, view.requester_id)
 	_render_trade(state)
-	_render_history(view.public_history())
+	_render_history(view.public_history(), state["players"])
 	_render_hand(view.own_hand())
 	_update_action_controls(state)
 	_render_result(state, view.requester_id)
@@ -130,10 +130,11 @@ func _render_hand(cards: Array[Dictionary]) -> void:
 		_hand.add_child(card_view)
 
 
-func _render_history(events: Array[Dictionary]) -> void:
+func _render_history(events: Array[Dictionary], players: Array) -> void:
+	var identities := _player_identities(players)
 	var lines: PackedStringArray = []
 	for event in events.slice(max(0, events.size() - 12)):
-		lines.append(_event_summary(event))
+		lines.append(_event_summary(event, identities))
 	_history.text = "\n".join(lines)
 	_history.scroll_to_line(max(0, _history.get_line_count() - 1))
 
@@ -150,7 +151,7 @@ func _render_result(state: Dictionary, local_player_id: int) -> void:
 		if state["ending"] == "Global Economic Meltdown":
 			_result_detail.text = "The crash eliminated every company. There are no winners."
 		else:
-			_result_detail.text = "Winner%s: %s" % ["" if state["winner_ids"].size() == 1 else "s", _player_list(state["winner_ids"])]
+			_result_detail.text = "Winner%s: %s" % ["" if state["winner_ids"].size() == 1 else "s", _player_list(state["winner_ids"], _player_identities(state["players"]))]
 		return
 	if !local_alive:
 		_result.visible = true
@@ -200,7 +201,7 @@ func _latest_public_update() -> String:
 	var events := _last_view.public_history()
 	if events.is_empty():
 		return "Trade floor ready\nChoose a company and a card when it is your turn."
-	return _event_summary(events.back())
+	return _event_summary(events.back(), _player_identities(_last_view.public_state()["players"]))
 
 
 func _market_description(state: Dictionary) -> String:
@@ -232,17 +233,17 @@ func trade_window_background() -> Color:
 	return _trade_background
 
 
-func _event_summary(event: Dictionary) -> String:
+func _event_summary(event: Dictionary, identities: Dictionary = {}) -> String:
 	var data: Dictionary = event["data"]
 	match event["type"]:
-		"turn_started": return "Turn %d — Player %d acts" % [data["turn"], data["actor_id"]]
-		"trade_proposed": return "P%d offered %s to P%d" % [data["actor_id"], _card_description(data["card"]), data["target_id"]]
-		"trade_resolved": return "Trade: P%d gave %s; P%d returned %s" % [data["actor_id"], _card_description(data["offered"]), data["target_id"], _cards_description(data["returned"])]
-		"player_acquired": return "Acquisition: P%d acquired P%d and %s" % [data["acquirer_id"], data["victim_id"], _cards_description(data["cards"])]
+		"turn_started": return "Turn %d" % data["turn"]
+		"trade_proposed": return "%s offers %s to %s" % [_player_identity(data["actor_id"], identities), _card_description(data["card"]), _player_identity(data["target_id"], identities)]
+		"trade_resolved": return "%s returns %s to %s" % [_player_identity(data["target_id"], identities), _cards_description(data["returned"]), _player_identity(data["actor_id"], identities)]
+		"player_acquired": return "%s acquires %s" % [_player_identity(data["acquirer_id"], identities), _player_identity(data["victim_id"], identities)]
 		"market_warning_started": return "Market warning: value %d, %d turns remaining" % [data["value"], data["turns_remaining"]]
 		"market_warning_updated": return "Market warning: value %d, %d turns remaining after this turn" % [data["value"], max(0, data["turns_remaining"] - 1)]
-		"market_crashed": return "Crash: removed all value %d%s" % [data["value"], _bankruptcy_description(data["bankrupt_player_ids"])]
-		"game_finished": return "%s — winners: %s" % [data["ending"], _player_list(data["winner_ids"])]
+		"market_crashed": return "Crash: removed all value %d%s" % [data["value"], _bankruptcy_description(data["bankrupt_player_ids"], identities)]
+		"game_finished": return "%s — winners: %s" % [data["ending"], _player_list(data["winner_ids"], identities)]
 		_: return event["type"]
 
 
@@ -259,17 +260,31 @@ func _cards_description(cards: Array) -> String:
 	return ", ".join(descriptions)
 
 
-func _bankruptcy_description(player_ids: Array) -> String:
-	return "; bankrupt: %s" % _player_list(player_ids) if !player_ids.is_empty() else ""
+func _bankruptcy_description(player_ids: Array, identities: Dictionary = {}) -> String:
+	return "; bankrupt: %s" % _player_list(player_ids, identities) if !player_ids.is_empty() else ""
 
 
-func _player_list(player_ids: Array) -> String:
+func _player_list(player_ids: Array, identities: Dictionary = {}) -> String:
 	if player_ids.is_empty():
 		return "none"
 	var names: PackedStringArray = []
 	for player_id in player_ids:
-		names.append("P%d" % player_id)
+		names.append(_player_identity(player_id, identities))
 	return ", ".join(names)
+
+
+func _player_identities(players: Array) -> Dictionary:
+	var identities: Dictionary = {}
+	for player: Dictionary in players:
+		identities[player["player_id"]] = player
+	return identities
+
+
+func _player_identity(player_id: int, identities: Dictionary) -> String:
+	if !identities.has(player_id):
+		return "Player %d" % player_id
+	var player: Dictionary = identities[player_id]
+	return "%s %s (P%d)" % [player["company_emoji"], player["company_name"], player_id]
 
 
 func _on_card_selection_changed(card_id: String, selected: bool) -> void:

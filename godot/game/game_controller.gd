@@ -78,8 +78,6 @@ func _resolve_offer(generation: int) -> bool:
 		var target := game.player_by_id(target_id)
 		if target == null:
 			return false
-		var target_name := "Human" if !policies.has(target.id) else policies[target.id].display_name
-		$DebugLogPanel._on_turn_matchup(actor, target, policy.display_name, target_name)
 		return submit_offer(actor.id, target_id, policy.choose_offer_card_id(view, target_id))
 	decision_requested.emit(actor.id, GameModel.PHASE_AWAITING_OFFER, game.player_view(actor.id))
 	return await _wait_for_action(generation, GameModel.PHASE_AWAITING_OFFER)
@@ -163,7 +161,6 @@ func return_to_main_menu() -> void:
 	match_generation += 1
 	fast_forward = false
 	_main_menu_open = true
-	_disconnect_game()
 	action_resolved.emit()
 	if $GameTable.is_node_ready():
 		$GameTable.show_main_menu(selected_player_count)
@@ -187,7 +184,6 @@ func set_player_one_conglomerate(index: int) -> void:
 
 func restart_game(human_player_ids: Array[int] = [], starting_player_id := -1) -> void:
 	match_generation += 1
-	_disconnect_game()
 	action_resolved.emit()
 	setup_game()
 	_main_menu_open = false
@@ -196,11 +192,9 @@ func restart_game(human_player_ids: Array[int] = [], starting_player_id := -1) -
 	local_player_id = human_player_ids[0] if !human_player_ids.is_empty() else 1
 	for player_id in human_player_ids:
 		assign_human(player_id)
-	connect_game()
 	game.current_player = game.player_by_id(starting_player_id) if starting_player_id > 0 else game.player_by_id(1)
 	if game.current_player == null:
 		game.pick_starting_player()
-	$DebugLogPanel._on_game_started(game.players, policies)
 	_publish_presentation()
 	play_game(match_generation)
 
@@ -211,38 +205,6 @@ func _publish_presentation() -> void:
 	var view := game.player_view(local_player_id)
 	if view != null:
 		presentation_updated.emit(view)
-
-
-func connect_game() -> void:
-	var debug_log_panel = $DebugLogPanel
-	
-	game.turn_started.connect(debug_log_panel._on_turn_started)
-	game.trade_proposed.connect(debug_log_panel._on_trade_proposed)
-	game.trade_resolved.connect(debug_log_panel._on_trade_resolved)
-	game.player_eliminated.connect(debug_log_panel._on_player_eliminated)
-	game.market_unstable.connect(debug_log_panel._on_market_unstable)
-	game.market_value_destruction.connect(debug_log_panel._on_market_value_destruction)
-	game.game_over.connect(debug_log_panel._on_game_over)
-
-
-func _disconnect_game() -> void:
-	if game == null:
-		return
-	var debug_log_panel = $DebugLogPanel
-	if game.turn_started.is_connected(debug_log_panel._on_turn_started):
-		game.turn_started.disconnect(debug_log_panel._on_turn_started)
-	if game.trade_proposed.is_connected(debug_log_panel._on_trade_proposed):
-		game.trade_proposed.disconnect(debug_log_panel._on_trade_proposed)
-	if game.trade_resolved.is_connected(debug_log_panel._on_trade_resolved):
-		game.trade_resolved.disconnect(debug_log_panel._on_trade_resolved)
-	if game.player_eliminated.is_connected(debug_log_panel._on_player_eliminated):
-		game.player_eliminated.disconnect(debug_log_panel._on_player_eliminated)
-	if game.market_unstable.is_connected(debug_log_panel._on_market_unstable):
-		game.market_unstable.disconnect(debug_log_panel._on_market_unstable)
-	if game.market_value_destruction.is_connected(debug_log_panel._on_market_value_destruction):
-		game.market_value_destruction.disconnect(debug_log_panel._on_market_value_destruction)
-	if game.game_over.is_connected(debug_log_panel._on_game_over):
-		game.game_over.disconnect(debug_log_panel._on_game_over)
 
 
 func setup_game() -> void:
