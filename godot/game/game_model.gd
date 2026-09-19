@@ -354,7 +354,7 @@ func public_history() -> Array[Dictionary]:
 func public_snapshot() -> Dictionary:
 	var seats: Array[Dictionary] = []
 	for player in players:
-		seats.append({"player_id": player.id, "seat": player.seat, "company_name": player.company_name, "company_emoji": player.company_emoji, "alive": player.alive, "hand_size": player.hand.size(), "company_ids": player.owned_company_ids.duplicate()})
+		seats.append({"player_id": player.id, "seat": player.seat, "company_name": player.company_name, "company_emoji": player.company_emoji, "alive": player.alive, "hand_size": player.hand.size(), "company_ids": player.owned_company_ids.duplicate(), "company_tokens": public_company_tokens(player.owned_company_ids)})
 	var trade: Dictionary = {}
 	if pending_trade != null:
 		trade = {
@@ -391,6 +391,22 @@ func public_cards(cards: Array[Card]) -> Array[Dictionary]:
 	for card in cards:
 		result.append(public_card(card))
 	return result
+
+
+func public_company_tokens(company_ids: Array[String]) -> Array[Dictionary]:
+	var tokens: Array[Dictionary] = []
+	for company_id in company_ids:
+		var company := company_by_id(company_id)
+		if company != null:
+			tokens.append({"company_id": company.company_id, "company_name": company.company_name, "company_emoji": company.company_emoji})
+	return tokens
+
+
+func company_by_id(company_id: String) -> Player:
+	for player in players:
+		if player.company_id == company_id:
+			return player
+	return null
 
 
 func alive_players() -> Array[Player]:

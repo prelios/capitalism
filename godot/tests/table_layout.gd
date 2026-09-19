@@ -64,6 +64,17 @@ func _init() -> void:
 	controller.restart_game([1], 1)
 	await process_frame
 	_expect(seats.get_child_count() == 10, "ten-seat match did not render every player seat")
+	var conglomerate := controller.game.players[0]
+	conglomerate.owned_company_ids.clear()
+	for player in controller.game.players:
+		conglomerate.owned_company_ids.append(player.company_id)
+		if player != conglomerate:
+			player.owned_company_ids.clear()
+	controller.presentation_updated.emit(controller.game.player_view(1))
+	await process_frame
+	var token_container := (seats.get_child(0) as PlayerSeatPanel).get_node("Margin/Content/CompanyTokenScroll/CompanyTokens") as HFlowContainer
+	_expect(token_container.get_child_count() == 10, "large company collection did not render every company token")
+	_expect((token_container.get_child(1) as CompanyToken).tooltip_text.contains(controller.game.players[1].company_name), "company token did not identify its conglomerate")
 	for seat_node in seats.get_children():
 		var seat := seat_node as PlayerSeatPanel
 		_expect(seat.get_global_rect().encloses((seat.get_node("Margin/Content") as VBoxContainer).get_global_rect()), "ten-seat player content exceeded its visual panel")

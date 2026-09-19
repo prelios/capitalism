@@ -181,12 +181,16 @@ func test_company_lineage_and_public_history() -> void:
 	expect(game.public_history().filter(func(event: Dictionary): return event["type"] == "player_acquired")[0]["data"]["cards"][0]["id"] == recorded_id, "history changed after later hand mutation")
 	var snapshot := game.public_snapshot()
 	expect(snapshot["players"][0].has("hand_size") and !snapshot["players"][0].has("hand"), "public snapshot exposed a private hand")
+	var inherited_tokens: Array = snapshot["players"][0]["company_tokens"]
+	expect(inherited_tokens.map(func(token: Dictionary): return token["company_id"]) == ["company-1", "company-2", "company-3"], "public snapshot did not expose inherited company tokens")
+	expect(inherited_tokens[1]["company_name"] == "Company 2" and inherited_tokens[1]["company_emoji"] == "🏢", "company token identity was incomplete")
 
 	acquirer.hand = cards([3])
 	game.market_stable = false
 	game.unstable_value = 3
 	game.destroy_value()
 	expect(acquirer.owned_company_ids.is_empty(), "bankruptcy did not remove inherited company tokens")
+	expect((game.public_snapshot()["players"][0]["company_tokens"] as Array).is_empty(), "bankruptcy left company tokens visible in the public snapshot")
 
 
 func test_domain_invariants() -> void:

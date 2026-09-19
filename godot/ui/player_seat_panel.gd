@@ -3,9 +3,13 @@ extends Button
 class_name PlayerSeatPanel
 
 
+const COMPANY_TOKEN_SCENE := preload("res://ui/company_token.tscn")
+
+
 @onready var _identity: Label = $Margin/Content/Identity
 @onready var _hand_count: Label = $Margin/Content/HandCount
 @onready var _companies: Label = $Margin/Content/Companies
+@onready var _company_tokens: HFlowContainer = $Margin/Content/CompanyTokenScroll/CompanyTokens
 @onready var _state: Label = $Margin/Content/State
 
 
@@ -13,7 +17,8 @@ func set_public_player(player: Dictionary, is_local: bool, is_current: bool, is_
 	player_id = player["player_id"]
 	_identity.text = "%s %s\nPlayer %d%s%s" % [player["company_emoji"], player["company_name"], player_id, " · You" if is_local else "", " · Current" if is_current else ""]
 	_hand_count.text = "%d card%s" % [player["hand_size"], "" if player["hand_size"] == 1 else "s"]
-	_companies.text = "%d compan%s" % [player["company_ids"].size(), "y" if player["company_ids"].size() == 1 else "ies"]
+	_companies.text = "%d compan%s owned" % [player["company_ids"].size(), "y" if player["company_ids"].size() == 1 else "ies"]
+	_set_company_tokens(player.get("company_tokens", []))
 	if !player["alive"]:
 		_state.text = "Acquired"
 		_apply_seat_style(Color("30343b"), Color("adb2bd"), Color("454b54"))
@@ -46,6 +51,16 @@ func _seat_style(background: Color, border: Color) -> StyleBoxFlat:
 	style.corner_radius_bottom_left = 10
 	style.corner_radius_bottom_right = 10
 	return style
+
+
+func _set_company_tokens(tokens: Array) -> void:
+	for token in _company_tokens.get_children():
+		_company_tokens.remove_child(token)
+		token.queue_free()
+	for token: Dictionary in tokens:
+		var company_token := COMPANY_TOKEN_SCENE.instantiate() as CompanyToken
+		_company_tokens.add_child(company_token)
+		company_token.set_company_token(token)
 
 
 func set_target_selectable(selectable: bool) -> void:
