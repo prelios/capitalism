@@ -83,13 +83,13 @@ func _render(view: PlayerView) -> void:
 	_last_view = view
 	var state := view.public_state()
 	_turn_label.text = "Turn %d · %s" % [state["turn"], _player_identity(state["current_player_id"], _player_identities(state["players"]))]
-	_market_label.text = "Market stable" if state["market_stable"] else "Instability: value %d" % state["unstable_value"]
+	_market_label.text = "Market stable" if state["market_stable"] else "⚠ Instability: value %d at risk" % state["unstable_value"]
 	_market_detail.text = _market_description(state)
 	_apply_market_state_style(state["market_stable"])
 	_render_seats(view.players(), state, view.requester_id)
 	_render_trade(state)
 	_render_history(view.public_history(), state["players"])
-	_render_hand(view.own_hand())
+	_render_hand(view.own_hand(), state)
 	_update_action_controls(state)
 	_render_result(state, view.requester_id)
 
@@ -115,16 +115,17 @@ func _render_trade(state: Dictionary) -> void:
 	_trade_label.text = "Player %d offers %s to Player %d\nAwaiting repayment." % [trade["actor_id"], _card_description(offered), trade["target_id"]]
 
 
-func _render_hand(cards: Array[Dictionary]) -> void:
+func _render_hand(cards: Array[Dictionary], state: Dictionary) -> void:
 	var present_ids: Array[String] = []
 	for card in cards:
 		present_ids.append(card["id"])
 	_selected_card_ids = _selected_card_ids.filter(func(card_id: String): return present_ids.has(card_id))
 	_clear_container(_hand)
 	_hand_title.text = "Your private hand · %d cards" % cards.size()
+	var endangered_value: int = -1 if state["market_stable"] else state["unstable_value"]
 	for card in cards:
 		var card_view := CARD_VIEW_SCENE.instantiate() as CardView
-		card_view.set_card(card)
+		card_view.set_card(card, card["value"] == endangered_value)
 		card_view.set_selected(_selected_card_ids.has(card["id"]))
 		card_view.card_selection_changed.connect(_on_card_selection_changed)
 		_hand.add_child(card_view)
@@ -207,12 +208,13 @@ func _latest_public_update() -> String:
 func _market_description(state: Dictionary) -> String:
 	if state["market_stable"]:
 		return "Stable market\nHighest active value: %d" % state["max_value"]
-	return "Warning for value %d\n%d completed turns remaining" % [state["unstable_value"], state["turns_remaining"]]
+	var turns: int = state["turns_remaining"]
+	return "⚠ Instability warning\nAll value %d cards will be removed at the crash.\n%d completed turn%s remaining" % [state["unstable_value"], turns, "" if turns == 1 else "s"]
 
 
 func _apply_market_state_style(stable: bool) -> void:
-	var background := Color("173d2b") if stable else Color("4d3d0c")
-	var border := Color("42d392") if stable else Color("f2c94c")
+	var background := Color("173d2b") if stable else Color("532207")
+	var border := Color("42d392") if stable else Color("ff8a2a")
 	var style := StyleBoxFlat.new()
 	style.bg_color = background
 	style.border_color = border
@@ -223,6 +225,7 @@ func _apply_market_state_style(stable: bool) -> void:
 	style.corner_radius_bottom_right = 10
 	_market_background = background
 	_market_tracker.add_theme_stylebox_override("panel", style)
+	_market_status.add_theme_stylebox_override("panel", style.duplicate())
 
 
 func market_status_background() -> Color:

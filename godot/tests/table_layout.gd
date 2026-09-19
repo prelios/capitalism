@@ -34,17 +34,29 @@ func _init() -> void:
 	_expect(!acquired_seat.is_target_selectable() and acquired_seat.mouse_filter == Control.MOUSE_FILTER_IGNORE, "acquired player seat remained interactive")
 	controller.restart_game([1], 1)
 	await process_frame
+	controller.game.players[0].hand = [Card.new("safe-value", 3, "Money"), Card.new("endangered-value", 4, "Tech")]
+	controller.presentation_updated.emit(controller.game.player_view(1))
+	await process_frame
+	_expect(!(hand.get_child(1) as CardView).is_endangered(), "stable market marked a card as endangered")
 	controller.game.market_stable = false
 	controller.game.unstable_value = 4
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame
-	_expect(table.market_status_background().is_equal_approx(Color("4d3d0c")), "unstable market status did not use the yellow style")
-	var first_card := hand.get_child(0) as CardView
-	first_card.button_pressed = true
-	var selected_id := first_card.card_id
+	_expect(table.market_status_background().is_equal_approx(Color("532207")), "unstable market status did not use the dark-orange style")
+	var endangered_card := hand.get_child(1) as CardView
+	_expect(endangered_card.is_endangered() and endangered_card.text.begins_with("⚠"), "pending crash value was not visibly marked in the local hand")
+	endangered_card.button_pressed = true
+	var selected_id := endangered_card.card_id
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame
 	_expect(table.selected_card_ids() == [selected_id], "local card selection was lost during redraw")
+	endangered_card = hand.get_child(1) as CardView
+	_expect(endangered_card.is_endangered() and endangered_card.card_background().is_equal_approx(Color("5c2609")), "selected endangered card did not preserve both danger and selection treatments")
+	controller.game.market_stable = true
+	controller.game.unstable_value = -1
+	controller.presentation_updated.emit(controller.game.player_view(1))
+	await process_frame
+	_expect(!(hand.get_child(1) as CardView).is_endangered(), "post-crash stable market left a card marked as endangered")
 	var expanded_hand: Array[Card] = []
 	for value in range(1, 25):
 		expanded_hand.append(Card.new("large-hand-%d" % value, value, "Money"))
