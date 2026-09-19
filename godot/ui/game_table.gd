@@ -15,12 +15,14 @@ var _decision_phase := ""
 var _selected_target_id := -1
 var _feedback := ""
 var _market_background := Color.TRANSPARENT
+var _trade_background := Color.TRANSPARENT
 
 @onready var _turn_status: PanelContainer = $Margin/Layout/Header/Margin/Content/TurnStatus
 @onready var _turn_label: Label = $Margin/Layout/Header/Margin/Content/TurnStatus/Turn
 @onready var _market_status: PanelContainer = $Margin/Layout/Header/Margin/Content/MarketStatus
 @onready var _market_label: Label = $Margin/Layout/Header/Margin/Content/MarketStatus/Market
 @onready var _seats: FlowContainer = $Margin/Layout/Main/Center/SeatScroll/Seats
+@onready var _trade: PanelContainer = $Margin/Layout/Main/Center/Trade
 @onready var _trade_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/TradeStatus
 @onready var _selection_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/Selection
 @onready var _confirm: Button = $Margin/Layout/Main/Center/Trade/Margin/Content/Confirm
@@ -226,6 +228,10 @@ func market_status_background() -> Color:
 	return _market_background
 
 
+func trade_window_background() -> Color:
+	return _trade_background
+
+
 func _event_summary(event: Dictionary) -> String:
 	var data: Dictionary = event["data"]
 	match event["type"]:
@@ -294,6 +300,7 @@ func _on_target_selected(player_id: int) -> void:
 
 
 func _update_action_controls(state: Dictionary) -> void:
+	_apply_trade_input_style(_is_offer_decision() or _is_repayment_decision())
 	var enabled := false
 	if _is_offer_decision():
 		_trade_label.text = "Choose one card and a company to make your offer."
@@ -310,6 +317,27 @@ func _update_action_controls(state: Dictionary) -> void:
 		_confirm.disabled = true
 		return
 	_confirm.disabled = !enabled
+
+
+func _apply_trade_input_style(awaiting_input: bool) -> void:
+	if !awaiting_input:
+		_trade.remove_theme_stylebox_override("panel")
+		_trade_label.remove_theme_color_override("font_color")
+		_selection_label.remove_theme_color_override("font_color")
+		_trade_background = Color.TRANSPARENT
+		return
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color.WHITE
+	style.border_color = Color.WHITE
+	style.set_border_width_all(3)
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	_trade.add_theme_stylebox_override("panel", style)
+	_trade_label.add_theme_color_override("font_color", Color("162238"))
+	_selection_label.add_theme_color_override("font_color", Color("162238"))
+	_trade_background = Color.WHITE
 
 
 func _confirm_selection() -> void:
