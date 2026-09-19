@@ -19,11 +19,21 @@ func _init() -> void:
 	_expect(hand.get_child_count() == 4, "local hand did not render the four private cards")
 	_expect(table.market_status_background().is_equal_approx(Color("173d2b")), "stable market status did not use the green style")
 	_expect(table.trade_window_background().is_equal_approx(Color.WHITE), "trade window did not turn white while awaiting local input")
+	var banner := table.get_node("Margin/Layout/Header/Margin/Content/TurnStatus/Turn") as Label
+	_expect(banner.text.contains(controller.game.players[0].company_name) and banner.text.contains(controller.game.players[0].company_emoji), "turn banner did not identify the active conglomerate")
 	var active_seat := seats.get_child(0) as PlayerSeatPanel
 	_expect(active_seat.seat_visual_background().is_equal_approx(Color("2f86dc")), "active player did not use the explicit blue resting style")
 	_expect(active_seat.get_node("Margin/Content/Identity").text.contains("Current"), "active player identity did not include the Current label")
 	_expect(active_seat.get_global_rect().encloses((active_seat.get_node("Margin/Content") as VBoxContainer).get_global_rect()), "player seat content exceeded its visual panel")
 	_expect(!active_seat.disabled, "inactive seat controls should not use desaturating disabled rendering")
+	controller.game.players[1].die()
+	controller.presentation_updated.emit(controller.game.player_view(1))
+	await process_frame
+	var acquired_seat := seats.get_child(1) as PlayerSeatPanel
+	_expect(acquired_seat.seat_visual_background().is_equal_approx(Color("30343b")), "acquired player did not use the neutral grey resting style")
+	_expect(!acquired_seat.is_target_selectable() and acquired_seat.mouse_filter == Control.MOUSE_FILTER_IGNORE, "acquired player seat remained interactive")
+	controller.restart_game([1], 1)
+	await process_frame
 	controller.game.market_stable = false
 	controller.game.unstable_value = 4
 	controller.presentation_updated.emit(controller.game.player_view(1))
@@ -50,6 +60,13 @@ func _init() -> void:
 	_expect(crash_summary.contains("value 4") and crash_summary.contains("Player 2, Player 3"), "crash history omitted value or bankrupt players")
 	var warning_summary := table._event_summary({"type": "market_warning_updated", "data": {"value": 4, "turns_remaining": 3}})
 	_expect(warning_summary.contains("2 turns remaining after this turn"), "warning history did not describe the post-turn countdown")
+	controller.selected_player_count = 10
+	controller.restart_game([1], 1)
+	await process_frame
+	_expect(seats.get_child_count() == 10, "ten-seat match did not render every player seat")
+	for seat_node in seats.get_children():
+		var seat := seat_node as PlayerSeatPanel
+		_expect(seat.get_global_rect().encloses((seat.get_node("Margin/Content") as VBoxContainer).get_global_rect()), "ten-seat player content exceeded its visual panel")
 	if failures.is_empty():
 		print("Table layout checks passed.")
 		quit(0)

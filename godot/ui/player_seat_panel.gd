@@ -16,7 +16,7 @@ func set_public_player(player: Dictionary, is_local: bool, is_current: bool, is_
 	_companies.text = "%d compan%s" % [player["company_ids"].size(), "y" if player["company_ids"].size() == 1 else "ies"]
 	if !player["alive"]:
 		_state.text = "Acquired"
-		_apply_seat_style(Color("26303f"), Color("8b93a4"), Color("354258"))
+		_apply_seat_style(Color("30343b"), Color("adb2bd"), Color("454b54"))
 	elif is_target:
 		_state.text = "Trade target"
 		_apply_seat_style(Color("6a1e28"), Color("ff6b78"), Color("8f2937"))

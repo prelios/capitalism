@@ -82,7 +82,7 @@ func selected_card_ids() -> Array[String]:
 func _render(view: PlayerView) -> void:
 	_last_view = view
 	var state := view.public_state()
-	_turn_label.text = "Turn %d · Player %d" % [state["turn"], state["current_player_id"]]
+	_turn_label.text = "Turn %d · %s" % [state["turn"], _player_identity(state["current_player_id"], _player_identities(state["players"]))]
 	_market_label.text = "Market stable" if state["market_stable"] else "Instability: value %d" % state["unstable_value"]
 	_market_detail.text = _market_description(state)
 	_apply_market_state_style(state["market_stable"])
