@@ -70,17 +70,17 @@ text = "Market"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Controls" type="HBoxContainer" parent="Margin/Layout/Header/Margin/Content"]
+[node name="Controls" type="HBoxContainer" parent="Margin/Layout/Header/Margin/Content" unique_id=781831477]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Restart" type="Button" parent="Margin/Layout/Header/Margin/Content/Controls"]
+[node name="Restart" type="Button" parent="Margin/Layout/Header/Margin/Content/Controls" unique_id=985096039]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Restart match"
 
-[node name="Menu" type="Button" parent="Margin/Layout/Header/Margin/Content/Controls"]
+[node name="Menu" type="Button" parent="Margin/Layout/Header/Margin/Content/Controls" unique_id=1404072004]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
@@ -256,20 +256,19 @@ text = "Fast-forward spectators"
 layout_mode = 2
 text = "Start a new match"
 
-[node name="MainMenu" type="Button" parent="Result/Margin/Content"]
+[node name="MainMenu" type="Button" parent="Result/Margin/Content" unique_id=329917044]
 layout_mode = 2
 text = "Main menu"
 
-[node name="MainMenu" type="Control" parent="."]
+[node name="MainMenu" type="Control" parent="." unique_id=447881041]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
-[node name="Panel" type="PanelContainer" parent="MainMenu"]
+[node name="Panel" type="PanelContainer" parent="MainMenu" unique_id=450811714]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -283,70 +282,66 @@ offset_bottom = 380.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Margin" type="MarginContainer" parent="MainMenu/Panel"]
+[node name="Margin" type="MarginContainer" parent="MainMenu/Panel" unique_id=112649593]
 layout_mode = 2
 theme_override_constants/margin_left = 32
 theme_override_constants/margin_top = 28
 theme_override_constants/margin_right = 32
 theme_override_constants/margin_bottom = 28
 
-[node name="Content" type="VBoxContainer" parent="MainMenu/Panel/Margin"]
+[node name="Content" type="VBoxContainer" parent="MainMenu/Panel/Margin" unique_id=2142375004]
 layout_mode = 2
 theme_override_constants/separation = 18
 
-[node name="Title" type="Label" parent="MainMenu/Panel/Margin/Content"]
+[node name="Title" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=1399973292]
 layout_mode = 2
 theme_override_font_sizes/font_size = 36
 text = "Capitalism With Cards"
 horizontal_alignment = 1
 
-[node name="Description" type="Label" parent="MainMenu/Panel/Margin/Content"]
+[node name="Description" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=1001143794]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "You are Player 1. On your turn, offer one card to another living company. The target must return one or more cards worth at least as much; otherwise you acquire its company and every card it holds."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Rules" type="Label" parent="MainMenu/Panel/Margin/Content"]
+[node name="Rules" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=420599039]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Acquisitions make the market unstable. When its warning ends, every highest-value card is destroyed. Win by becoming the sole surviving company; two fully diversified survivors can share a duopoly."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="PlayerCountLabel" type="Label" parent="MainMenu/Panel/Margin/Content"]
+[node name="PlayerCountLabel" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=1164335130]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Players (4–10)"
 
-[node name="PlayerCount" type="SpinBox" parent="MainMenu/Panel/Margin/Content"]
+[node name="PlayerCount" type="SpinBox" parent="MainMenu/Panel/Margin/Content" unique_id=625735122]
 custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
 min_value = 4.0
 max_value = 10.0
-step = 1.0
 value = 4.0
 rounded = true
-allow_greater = false
-allow_lesser = false
 
-[node name="ConglomerateLabel" type="Label" parent="MainMenu/Panel/Margin/Content"]
+[node name="ConglomerateLabel" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=833540873]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Your conglomerate"
 
-[node name="ConglomerateName" type="OptionButton" parent="MainMenu/Panel/Margin/Content"]
+[node name="ConglomerateName" type="OptionButton" parent="MainMenu/Panel/Margin/Content" unique_id=385711845]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 
-[node name="AIPacing" type="CheckButton" parent="MainMenu/Panel/Margin/Content"]
+[node name="AIPacing" type="CheckButton" parent="MainMenu/Panel/Margin/Content" unique_id=955150177]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 button_pressed = true
 text = "Show AI turns (2-second pace)"
 
-[node name="StartMatch" type="Button" parent="MainMenu/Panel/Margin/Content"]
+[node name="StartMatch" type="Button" parent="MainMenu/Panel/Margin/Content" unique_id=643214194]
 layout_mode = 2
 text = "Start match"

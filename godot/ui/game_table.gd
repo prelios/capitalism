@@ -342,16 +342,16 @@ func _apply_trade_input_style(awaiting_input: bool) -> void:
 		_trade_background = Color.TRANSPARENT
 		return
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color.WHITE
-	style.border_color = Color.WHITE
+	style.bg_color = Color("0b5b1fff")
+	style.border_color = Color("24f962ff")
 	style.set_border_width_all(3)
 	style.corner_radius_top_left = 10
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10
 	style.corner_radius_bottom_right = 10
 	_trade.add_theme_stylebox_override("panel", style)
-	_trade_label.add_theme_color_override("font_color", Color("162238"))
-	_selection_label.add_theme_color_override("font_color", Color("162238"))
+	_trade_label.add_theme_color_override("font_color", Color.WHITE)
+	_selection_label.add_theme_color_override("font_color", Color.WHITE)
 	_trade_background = Color.WHITE
 
 
