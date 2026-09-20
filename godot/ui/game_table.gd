@@ -207,7 +207,7 @@ func _market_description(state: Dictionary) -> String:
 	if state["market_stable"]:
 		return "%s\nHighest active value: %d" % [_market_pressure_copy(state["market_pressure"]), state["max_value"]]
 	var turns: int = state["turns_remaining"]
-	return "⚠ Instability warning\nCards with value %d will be removed at the crash.\n%d completed turn%s remaining" % [state["unstable_value"], turns, "" if turns == 1 else "s"]
+	return "⚠ Instability warning\nCards with value %d will be removed at the crash.\n%d turn%s remaining" % [state["unstable_value"], turns, "" if turns == 1 else "s"]
 
 
 func _market_pressure_copy(pressure: String) -> String:
@@ -258,11 +258,11 @@ func _event_summary(event: Dictionary, identities: Dictionary = {}) -> String:
 	match event["type"]:
 		"turn_started": return "Turn %d" % data["turn"]
 		"trade_proposed": return "%s offers %s to %s" % [_player_identity(data["actor_id"], identities), _card_description(data["card"]), _player_identity(data["target_id"], identities)]
-		"trade_resolved": return "%s returns %s to %s" % [_player_identity(data["target_id"], identities), _cards_description(data["returned"]), _player_identity(data["actor_id"], identities)]
+		"trade_resolved": return "%s returns %s" % [_player_identity(data["target_id"], identities), _cards_description(data["returned"])]
 		"player_acquired": return "%s acquires %s" % [_player_identity(data["acquirer_id"], identities), _player_identity(data["victim_id"], identities)]
-		"market_warning_started": return "Market warning: value %d, %d turns remaining" % [data["value"], data["turns_remaining"]]
-		"market_warning_updated": return "Market warning: value %d, %d turns remaining after this turn" % [data["value"], max(0, data["turns_remaining"] - 1)]
-		"market_crashed": return "Crash: removed all value %d%s" % [data["value"], _bankruptcy_description(data["bankrupt_player_ids"], identities)]
+		"market_warning_started": return "⚠ Market unstable: value %d is at risk" % [data["value"]]
+		"market_warning_updated": return "⚠ Market crash in %d turns" % [data["value"]]
+		"market_crashed": return "Market Crash: removed all cards with value %d%s" % [data["value"], _bankruptcy_description(data["bankrupt_player_ids"], identities)]
 		"game_finished": return "%s — winners: %s" % [data["ending"], _player_list(data["winner_ids"], identities)]
 		_: return event["type"]
 
