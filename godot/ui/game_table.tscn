@@ -129,7 +129,7 @@ custom_minimum_size = Vector2(310, 0)
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="LogTitle" type="Label" parent="Margin/Layout/Main/Sidebar"]
+[node name="LogTitle" type="Label" parent="Margin/Layout/Main/Sidebar" unique_id=759022727]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Public event log"

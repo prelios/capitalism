@@ -7,6 +7,6 @@ class_name CompanyToken
 
 
 func set_company_token(token: Dictionary) -> void:
-	_label.text = "%s %s" % [token["company_emoji"], token["company_name"]]
+	_label.text = "%s" % [token["company_emoji"]]
 	tooltip_text = "%s %s" % [token["company_emoji"], token["company_name"]]
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
