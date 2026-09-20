@@ -142,6 +142,7 @@ func _layout_seats() -> void:
 		var angle := _seat_angle(index, rotated.size())
 		var seat_center_position := center + Vector2(cos(angle) * radius.x, sin(angle) * radius.y)
 		rotated[index].position = seat_center_position - sample_size * 0.5
+	queue_redraw()
 
 
 func _seat_angle(index: int, player_count: int) -> float:
@@ -164,29 +165,33 @@ func _arrow_points() -> PackedVector2Array:
 	var direct := finish - start
 	if direct.length() < 1.0:
 		return PackedVector2Array()
-	var direction := direct.normalized()
-	start += direction * (_seat_edge_distance(flow.x, direction) + 8.0)
-	finish -= direction * (_seat_edge_distance(flow.y, -direction) + 12.0)
-	direct = finish - start
 	var normal := Vector2(-direct.y, direct.x).normalized()
 	var control := center + normal * minf(80.0, direct.length() * 0.12)
-	var points := PackedVector2Array()
-	for index in range(41):
-		var t := float(index) / 40.0
-		points.append(_quadratic(start, control, finish, t))
-	return points
+	var full_path := PackedVector2Array()
+	for index in range(61):
+		var t := float(index) / 60.0
+		full_path.append(_quadratic(start, control, finish, t))
+	var source_bounds := _seat_rect(flow.x).grow(8.0)
+	var target_bounds := _seat_rect(flow.y).grow(12.0)
+	var first_visible := 0
+	while first_visible < full_path.size() - 1 and source_bounds.has_point(full_path[first_visible]):
+		first_visible += 1
+	var last_visible := full_path.size() - 1
+	while last_visible > first_visible and target_bounds.has_point(full_path[last_visible]):
+		last_visible -= 1
+	var visible_path := PackedVector2Array()
+	for index in range(first_visible, last_visible + 1):
+		visible_path.append(full_path[index])
+	return visible_path
 
 
-func _seat_edge_distance(player_id: int, direction: Vector2) -> float:
+func _seat_rect(player_id: int) -> Rect2:
 	for child in seats.get_children():
 		var seat := child as PlayerSeatPanel
 		if seat == null or seat.player_id != player_id:
 			continue
-		var half_size := seat.size * 0.5
-		var horizontal := INF if is_zero_approx(direction.x) else half_size.x / absf(direction.x)
-		var vertical := INF if is_zero_approx(direction.y) else half_size.y / absf(direction.y)
-		return minf(horizontal, vertical)
-	return 0.0
+		return Rect2(seat.position, seat.size)
+	return Rect2()
 
 
 func _quadratic(start: Vector2, control: Vector2, finish: Vector2, t: float) -> Vector2:
@@ -195,10 +200,11 @@ func _quadratic(start: Vector2, control: Vector2, finish: Vector2, t: float) -> 
 
 
 func _draw_arrow_head(points: PackedVector2Array) -> void:
-	var tip := points[points.size() - 1]
-	var direction := (tip - points[points.size() - 3]).normalized()
+	var middle_index := clampi(int(points.size() / 2), 1, points.size() - 2)
+	var direction := (points[middle_index + 1] - points[middle_index - 1]).normalized()
 	var normal := Vector2(-direction.y, direction.x)
-	var base := tip - direction * 24.0
+	var tip := points[middle_index] + direction * 14.0
+	var base := points[middle_index] - direction * 11.0
 	draw_colored_polygon(PackedVector2Array([tip, base + normal * 13.0, base - normal * 13.0]), _arrow_color)
 
 

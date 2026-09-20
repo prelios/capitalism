@@ -108,7 +108,7 @@ func _render_seats(players: Array[Dictionary], state: Dictionary, local_player_i
 		seat.set_target_selectable(_is_offer_decision() and player["alive"] and player["player_id"] != local_player_id)
 		seat.target_selected.connect(_on_target_selected)
 		seat.target_hovered.connect(_on_target_hovered)
-	_arena.call_deferred("refresh_seat_layout")
+	_arena.refresh_seat_layout()
 
 
 func _render_trade(state: Dictionary) -> void:
