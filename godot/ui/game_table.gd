@@ -263,7 +263,7 @@ func trade_window_background() -> Color:
 func _event_summary(event: Dictionary, identities: Dictionary = {}) -> String:
 	var data: Dictionary = event["data"]
 	match event["type"]:
-		"turn_started": return "────────── Turn %d ──────────" % data["turn"]
+		"turn_started": return "──────────\n Turn %d" % data["turn"]
 		"trade_proposed": return "%s offers %s to %s" % [_player_identity(data["actor_id"], identities), _card_description(data["card"]), _player_identity(data["target_id"], identities)]
 		"trade_resolved": return "%s returns %s" % [_player_identity(data["target_id"], identities), _cards_description(data["returned"])]
 		"player_acquired": return "%s acquires %s" % [_player_identity(data["acquirer_id"], identities), _player_identity(data["victim_id"], identities)]
