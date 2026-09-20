@@ -19,8 +19,6 @@ var _trade_background := Color.TRANSPARENT
 
 @onready var _turn_status: PanelContainer = $Margin/Layout/Header/Margin/Content/TurnStatus
 @onready var _turn_label: Label = $Margin/Layout/Header/Margin/Content/TurnStatus/Turn
-@onready var _market_status: PanelContainer = $Margin/Layout/Header/Margin/Content/MarketStatus
-@onready var _market_label: Label = $Margin/Layout/Header/Margin/Content/MarketStatus/Market
 @onready var _seats: FlowContainer = $Margin/Layout/Main/Center/SeatScroll/Seats
 @onready var _trade: PanelContainer = $Margin/Layout/Main/Center/Trade
 @onready var _trade_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/TradeStatus
@@ -83,7 +81,6 @@ func _render(view: PlayerView) -> void:
 	_last_view = view
 	var state := view.public_state()
 	_turn_label.text = "Turn %d · %s" % [state["turn"], _player_identity(state["current_player_id"], _player_identities(state["players"]))]
-	_market_label.text = "Market stable" if state["market_stable"] else "⚠ Instability: value %d at risk" % state["unstable_value"]
 	_market_detail.text = _market_description(state)
 	_apply_market_state_style(state["market_stable"])
 	_render_seats(view.players(), state, view.requester_id)
@@ -225,7 +222,6 @@ func _apply_market_state_style(stable: bool) -> void:
 	style.corner_radius_bottom_right = 10
 	_market_background = background
 	_market_tracker.add_theme_stylebox_override("panel", style)
-	_market_status.add_theme_stylebox_override("panel", style.duplicate())
 
 
 func market_status_background() -> Color:
