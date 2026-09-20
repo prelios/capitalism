@@ -39,7 +39,8 @@ func _test_normal_trade_sequence() -> void:
 	await process_frame
 	await process_frame
 	var stages := _stages()
-	_expect(_contains_ordered(stages, ["offer_moving", "offer_ready", "repayment_moving", "repayment_ready", "exchange", "arrival", "settled"]), "normal trade omitted or reordered a presentation stage: %s" % [stages])
+	_expect(_contains_ordered(stages, ["offer_moving", "offer_ready", "repayment_moving", "repayment_ready", "arrival", "settled"]), "normal trade omitted or reordered a presentation stage: %s" % [stages])
+	_expect(!stages.has("exchange"), "normal trade still inserted a rotation/exchange stage")
 	var repayment := _first_presentation("repayment_ready")
 	_expect(repayment.get("returned_cards", []).size() == 2, "repayment presentation did not keep every returned card visible")
 	_expect(controller.game.players[0].hand.any(func(card: Card): return card.id == "public-return-a") and controller.game.players[1].hand.any(func(card: Card): return card.id == "public-offer"), "presentation sequence changed the authoritative trade result")

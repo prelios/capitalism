@@ -31,7 +31,7 @@ func _init() -> void:
 		company_names[player.company_name] = true
 	_expect(company_names.size() == controller.game.players.size(), "conglomerate names were not uniquely assigned")
 	_expect(controller.game.current_player.id == 1, "Player 1 did not start the playtest match")
-	_expect(ai_pacing.button_pressed and controller.ai_turn_pacing_enabled and controller.offer_travel_seconds > 0.0 and controller.exchange_seconds > 0.0 and controller.hand_update_beat_seconds > 0.0, "staged trade pacing defaults were not configured")
+	_expect(ai_pacing.button_pressed and controller.ai_turn_pacing_enabled and controller.offer_travel_seconds > 0.0 and controller.repayment_read_seconds > 0.0 and controller.hand_update_beat_seconds > 0.0, "staged trade pacing defaults were not configured")
 	controller.game.players[0].die()
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	_expect(result.visible and title.text == "Your company was acquired" and fast_forward.visible, "human elimination did not enter spectator mode")

@@ -38,7 +38,7 @@ bankruptcy/meltdown, and last-acquisition monopoly.
 
 ## Current usability notes
 
-- Every trade uses individually tuned target, offer, repayment, exchange,
+- Every trade uses individually tuned target, offer, repayment, midpoint,
   arrival, and hand-update beats; spectator fast-forward removes them.
 - Public seats use a clock layout for the full 4–10-player range, with the
   human at 6 o'clock and extra space reserved around the local hand.

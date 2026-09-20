@@ -35,7 +35,6 @@ const CONGLOMERATES: Array[Dictionary] = [
 @export var repayment_decision_seconds := 0.65
 @export var repayment_travel_seconds := 0.85
 @export var repayment_read_seconds := 0.7
-@export var exchange_seconds := 0.9
 @export var arrival_seconds := 0.8
 @export var acquisition_seconds := 1.0
 @export var crash_interrupt_seconds := 1.0
@@ -204,8 +203,6 @@ func _present_successful_trade(generation: int) -> bool:
 	if !await _present_stage("repayment_moving", repayment_travel_seconds, generation):
 		return false
 	if !await _present_stage("repayment_ready", repayment_read_seconds, generation):
-		return false
-	if !await _present_stage("exchange", exchange_seconds, generation):
 		return false
 	if !await _present_stage("arrival", arrival_seconds, generation):
 		return false

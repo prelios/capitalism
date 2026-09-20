@@ -101,7 +101,7 @@ func seat_center(player_id: int) -> Vector2:
 
 
 func _process(_delta: float) -> void:
-	if _stage_duration > 0.0 and _stage in ["offer_moving", "repayment_moving", "exchange", "arrival", "acquisition", "acquisition_arrival"]:
+	if _stage_duration > 0.0 and _stage in ["offer_moving", "repayment_moving", "arrival", "acquisition", "acquisition_arrival"]:
 		queue_redraw()
 
 
@@ -216,12 +216,9 @@ func _draw_trade_cards(points: PackedVector2Array) -> void:
 			offer_t = lerpf(0.08, 0.40, progress)
 		"repayment_moving":
 			return_t = lerpf(0.92, 0.60, progress)
-		"exchange":
-			offer_t = lerpf(0.40, 0.60, progress)
-			return_t = lerpf(0.60, 0.40, progress)
 		"arrival":
-			offer_t = lerpf(0.60, 0.92, progress)
-			return_t = lerpf(0.40, 0.08, progress)
+			offer_t = lerpf(0.40, 0.92, progress)
+			return_t = lerpf(0.60, 0.08, progress)
 		"acquisition":
 			offer_t = 0.60
 			offer_side = -1.0
@@ -232,9 +229,9 @@ func _draw_trade_cards(points: PackedVector2Array) -> void:
 			offer_side = -1.0
 			acquired_t = lerpf(0.40, 0.92, progress)
 			acquired_side = 1.0
-	_draw_card_group(points, offer_t, [_offered_card], offer_side if _stage != "exchange" else cos(progress * PI))
-	if !_returned_cards.is_empty() and _stage in ["repayment_moving", "repayment_ready", "exchange", "arrival"]:
-		_draw_card_group(points, return_t, _returned_cards, -1.0 if _stage != "exchange" else -cos(progress * PI))
+	_draw_card_group(points, offer_t, [_offered_card], offer_side)
+	if !_returned_cards.is_empty() and _stage in ["repayment_moving", "repayment_ready", "arrival"]:
+		_draw_card_group(points, return_t, _returned_cards, -1.0)
 	if !_acquired_cards.is_empty() and _stage in ["acquisition", "acquisition_arrival"]:
 		_draw_card_group(points, acquired_t, _acquired_cards, acquired_side)
 

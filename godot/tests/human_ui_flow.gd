@@ -52,10 +52,9 @@ func _test_human_offer() -> void:
 
 func _test_human_overpayment() -> void:
 	var controller := await _new_controller()
-	controller.fast_headless = false
-	controller.presentation_speed_scale = 0.001
+	controller.ai_turn_pacing_enabled = false
 	_start_configured_ai_turn(controller, [Card.new("human-overpay", 3, "Money")], [Card.new("ai-offer", 2, "Workers"), Card.new("ai-extra", 1, "Tech")])
-	await create_timer(0.08).timeout
+	await process_frame
 	var table := controller.get_node("GameTable") as GameTable
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
 	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button
@@ -70,10 +69,9 @@ func _test_human_overpayment() -> void:
 
 func _test_insufficient_repayment_selection() -> void:
 	var controller := await _new_controller()
-	controller.fast_headless = false
-	controller.presentation_speed_scale = 0.001
+	controller.ai_turn_pacing_enabled = false
 	_start_configured_ai_turn(controller, [Card.new("human-small", 1, "Money"), Card.new("human-large", 3, "Workers")], [Card.new("ai-offer", 3, "Tech"), Card.new("ai-extra", 1, "Hype")])
-	await create_timer(0.08).timeout
+	await process_frame
 	var table := controller.get_node("GameTable") as GameTable
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
 	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button
@@ -86,10 +84,9 @@ func _test_insufficient_repayment_selection() -> void:
 
 func _test_duplicate_values_repayment() -> void:
 	var controller := await _new_controller()
-	controller.fast_headless = false
-	controller.presentation_speed_scale = 0.001
+	controller.ai_turn_pacing_enabled = false
 	_start_configured_ai_turn(controller, [Card.new("duplicate-a", 2, "Money"), Card.new("duplicate-b", 2, "Workers")], [Card.new("ai-offer", 4, "Tech")])
-	await create_timer(0.08).timeout
+	await process_frame
 	var table := controller.get_node("GameTable") as GameTable
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
 	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button

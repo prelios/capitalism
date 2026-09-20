@@ -51,8 +51,7 @@ func _test_human_repayment_against_model(scene: PackedScene) -> void:
 	decisions.clear()
 	var delayed_controller := scene.instantiate() as GameController
 	delayed_controller.auto_start = false
-	delayed_controller.fast_headless = false
-	delayed_controller.presentation_speed_scale = 0.001
+	delayed_controller.ai_turn_pacing_enabled = false
 	root.add_child(delayed_controller)
 	delayed_controller.decision_requested.connect(_on_decision_requested)
 	delayed_controller.match_generation += 1
@@ -63,7 +62,7 @@ func _test_human_repayment_against_model(scene: PackedScene) -> void:
 	delayed_controller.game.players[0].hand = [Card.new("human-overpay", 3, "Money")]
 	delayed_controller.game.players[1].hand = [Card.new("ai-offer", 2, "Workers"), Card.new("ai-extra", 1, "Tech")]
 	delayed_controller.play_game(delayed_controller.match_generation)
-	await create_timer(0.08).timeout
+	await process_frame
 	_expect(decisions.size() == 1 and decisions[0]["actor_id"] == 1 and decisions[0]["phase"] == GameModel.PHASE_AWAITING_REPAYMENT, "human repayment did not pause an AI turn")
 	_expect(!delayed_controller.submit_repayment(1, ["human-overpay", "human-overpay"]), "duplicate human repayment was accepted")
 	_expect(delayed_controller.game.phase == GameModel.PHASE_AWAITING_REPAYMENT, "invalid repayment cleared the pending human choice")

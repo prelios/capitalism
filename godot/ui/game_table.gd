@@ -391,7 +391,6 @@ func _presentation_status(presentation: Dictionary) -> String:
 		"offer_ready": return "%s offers %s to %s\nAwaiting repayment." % [actor, _card_description(offered), target]
 		"repayment_moving": return "%s reveals a repayment to %s" % [target, actor]
 		"repayment_ready": return "Offer and repayment confirmed"
-		"exchange": return "Trade accepted · exchanging the public cards"
 		"arrival": return "Cards arriving with their new owners"
 		"settled": return "Trade complete"
 		"acquisition": return "%s cannot repay · remaining cards move to the table" % target
