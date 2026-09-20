@@ -18,6 +18,10 @@ const PHASE_AWAITING_OFFER := "awaiting_offer"
 const PHASE_AWAITING_REPAYMENT := "awaiting_repayment"
 const PHASE_TURN_RESOLVED := "turn_resolved"
 const PHASE_FINISHED := "finished"
+const MARKET_PRESSURE_CALM := "Calm"
+const MARKET_PRESSURE_MOVING := "Moving"
+const MARKET_PRESSURE_RESTLESS := "Restless"
+const MARKET_PRESSURE_DANGEROUS := "Dangerous"
 
 
 var config: MatchConfig
@@ -362,7 +366,7 @@ func public_snapshot() -> Dictionary:
 			"target_id": pending_trade.target_id,
 			"offered_card": public_card(pending_trade.offered_card)
 		}
-	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "pending_trade": trade, "game_finished": game_finished, "ending": ending, "winner_ids": winner_ids.duplicate(), "players": seats}
+	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "market_pressure": market_pressure(), "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "pending_trade": trade, "game_finished": game_finished, "ending": ending, "winner_ids": winner_ids.duplicate(), "players": seats}
 
 
 func player_view(requester_id: int) -> PlayerView:
@@ -391,6 +395,20 @@ func public_cards(cards: Array[Card]) -> Array[Dictionary]:
 	for card in cards:
 		result.append(public_card(card))
 	return result
+
+
+func market_pressure() -> String:
+	if !market_stable:
+		return ""
+	var threshold: int = max(1, boredom_multiplier * alive_players().size())
+	var progress: float = float(boredom_counter) / float(threshold)
+	if progress >= 0.6:
+		return MARKET_PRESSURE_DANGEROUS
+	if progress >= 0.4:
+		return MARKET_PRESSURE_RESTLESS
+	if progress >= 0.1:
+		return MARKET_PRESSURE_MOVING
+	return MARKET_PRESSURE_CALM
 
 
 func public_company_tokens(company_ids: Array[String]) -> Array[Dictionary]:

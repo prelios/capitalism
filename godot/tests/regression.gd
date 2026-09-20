@@ -18,11 +18,12 @@ func _init() -> void:
 	test_stable_two_player_duopoly()
 	test_warning_timing_uses_completed_turns()
 	test_boredom_trade_policy()
+	test_market_pressure_feedback()
 	test_fixed_seat_turn_traversal()
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 13 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 14 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -386,6 +387,26 @@ func test_boredom_trade_policy() -> void:
 	warning_game.market_stable = false
 	resolve_bot_trade(warning_game, warning_current, warning_target, warning_current.hand[0])
 	expect(warning_game.boredom_counter == 0, "warning-phase trade accumulated boredom")
+
+
+func test_market_pressure_feedback() -> void:
+	var game := game_for(4)
+	game.boredom_counter = 3
+	expect(game.market_pressure() == GameModel.MARKET_PRESSURE_CALM, "pressure reached Moving before ten percent of the active threshold")
+	game.boredom_counter = 4
+	expect(game.market_pressure() == GameModel.MARKET_PRESSURE_MOVING, "pressure did not enter Moving at ten percent")
+	game.boredom_counter = 16
+	expect(game.market_pressure() == GameModel.MARKET_PRESSURE_RESTLESS, "pressure did not enter Restless at forty percent")
+	game.boredom_counter = 24
+	expect(game.market_pressure() == GameModel.MARKET_PRESSURE_DANGEROUS, "pressure did not enter Dangerous at sixty percent")
+	game.players[3].die()
+	game.boredom_counter = 3
+	expect(game.market_pressure() == GameModel.MARKET_PRESSURE_MOVING, "pressure did not use the current survivor threshold")
+	game.destabilize_market()
+	expect(game.market_pressure().is_empty(), "warning market exposed a stable-market pressure state")
+	game.stabilize_market()
+	expect(game.market_pressure() == GameModel.MARKET_PRESSURE_CALM, "pressure did not reset after stabilization")
+	expect(!game.public_snapshot().has("boredom_counter"), "public snapshot exposed the exact boredom counter")
 
 
 func test_fixed_seat_turn_traversal() -> void:

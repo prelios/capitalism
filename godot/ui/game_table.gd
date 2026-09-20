@@ -83,6 +83,7 @@ func _render(view: PlayerView) -> void:
 	_turn_label.text = "Turn %d · %s" % [state["turn"], _player_identity(state["current_player_id"], _player_identities(state["players"]))]
 	_market_detail.text = _market_description(state)
 	_apply_market_state_style(state["market_stable"])
+	_apply_market_pressure_style(state)
 	_render_seats(view.players(), state, view.requester_id)
 	_render_trade(state)
 	_render_history(view.public_history(), state["players"])
@@ -204,9 +205,29 @@ func _latest_public_update() -> String:
 
 func _market_description(state: Dictionary) -> String:
 	if state["market_stable"]:
-		return "Stable market\nHighest active value: %d" % state["max_value"]
+		return "%s\nRepeated stable trades build pressure and may trigger a market warning.\nHighest active value: %d" % [_market_pressure_copy(state["market_pressure"]), state["max_value"]]
 	var turns: int = state["turns_remaining"]
 	return "⚠ Instability warning\nAll value %d cards will be removed at the crash.\n%d completed turn%s remaining" % [state["unstable_value"], turns, "" if turns == 1 else "s"]
+
+
+func _market_pressure_copy(pressure: String) -> String:
+	match pressure:
+		GameModel.MARKET_PRESSURE_MOVING: return "◔ Moving market"
+		GameModel.MARKET_PRESSURE_RESTLESS: return "◑ Restless market"
+		GameModel.MARKET_PRESSURE_DANGEROUS: return "⚠ Dangerous market"
+		_: return "● Calm market"
+
+
+func _apply_market_pressure_style(state: Dictionary) -> void:
+	if !state["market_stable"]:
+		_market_detail.remove_theme_color_override("font_color")
+		return
+	var color := Color("a8f0c5")
+	match state["market_pressure"]:
+		GameModel.MARKET_PRESSURE_MOVING: color = Color("b7d8f7")
+		GameModel.MARKET_PRESSURE_RESTLESS: color = Color("e7d89a")
+		GameModel.MARKET_PRESSURE_DANGEROUS: color = Color("f4bb8a")
+	_market_detail.add_theme_color_override("font_color", color)
 
 
 func _apply_market_state_style(stable: bool) -> void:

@@ -18,6 +18,8 @@ func _init() -> void:
 	_expect(seats.get_child_count() == 4, "four-seat match did not render four public seat panels")
 	_expect(hand.get_child_count() == 4, "local hand did not render the four private cards")
 	_expect(table.market_status_background().is_equal_approx(Color("173d2b")), "stable market status did not use the green style")
+	var market_detail := table.get_node("Margin/Layout/Main/Sidebar/Market/Margin/Content") as Label
+	_expect(market_detail.text.contains("Calm market") and market_detail.text.contains("Repeated stable trades"), "stable market did not explain calm pressure")
 	_expect(table.trade_window_background().is_equal_approx(Color.WHITE), "trade window did not turn white while awaiting local input")
 	var banner := table.get_node("Margin/Layout/Header/Margin/Content/TurnStatus/Turn") as Label
 	_expect(banner.text.contains(controller.game.players[0].company_name) and banner.text.contains(controller.game.players[0].company_emoji), "turn banner did not identify the active conglomerate")
@@ -35,9 +37,11 @@ func _init() -> void:
 	controller.restart_game([1], 1)
 	await process_frame
 	controller.game.players[0].hand = [Card.new("safe-value", 3, "Money"), Card.new("endangered-value", 4, "Tech")]
+	controller.game.boredom_counter = 16
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame
 	_expect(!(hand.get_child(1) as CardView).is_endangered(), "stable market marked a card as endangered")
+	_expect(market_detail.text.contains("Restless market") and !market_detail.text.contains("16"), "stable market did not present qualitative pressure without an exact counter")
 	controller.game.market_stable = false
 	controller.game.unstable_value = 4
 	controller.presentation_updated.emit(controller.game.player_view(1))
@@ -52,11 +56,11 @@ func _init() -> void:
 	_expect(table.selected_card_ids() == [selected_id], "local card selection was lost during redraw")
 	endangered_card = hand.get_child(1) as CardView
 	_expect(endangered_card.is_endangered() and endangered_card.card_background().is_equal_approx(Color("5c2609")), "selected endangered card did not preserve both danger and selection treatments")
-	controller.game.market_stable = true
-	controller.game.unstable_value = -1
+	controller.game.stabilize_market()
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame
 	_expect(!(hand.get_child(1) as CardView).is_endangered(), "post-crash stable market left a card marked as endangered")
+	_expect(market_detail.text.contains("Calm market"), "stable market did not reset pressure presentation")
 	var expanded_hand: Array[Card] = []
 	for value in range(1, 25):
 		expanded_hand.append(Card.new("large-hand-%d" % value, value, "Money"))
