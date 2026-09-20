@@ -15,6 +15,7 @@ var _target_id := -1
 var _stage := "idle"
 var _offered_card: Dictionary = {}
 var _returned_cards: Array = []
+var _acquired_cards: Array = []
 var _stage_started_msec := 0
 var _stage_duration := 0.0
 var _arrow_color := ARROW_ACTIVE
@@ -43,6 +44,7 @@ func show_target_preview(actor_id: int, target_id: int, selected: bool) -> void:
 	_arrow_color = ARROW_SELECTED if selected else ARROW_HOVER
 	_offered_card = {}
 	_returned_cards.clear()
+	_acquired_cards.clear()
 	_stage_duration = 0.0
 	queue_redraw()
 
@@ -58,6 +60,7 @@ func show_presentation(presentation: Dictionary) -> void:
 	_target_id = presentation.get("target_id", -1)
 	_offered_card = presentation.get("offered_card", {}).duplicate(true)
 	_returned_cards = presentation.get("returned_cards", []).duplicate(true)
+	_acquired_cards = presentation.get("acquired_cards", []).duplicate(true)
 	_stage_duration = presentation.get("duration", 0.0)
 	_stage_started_msec = Time.get_ticks_msec()
 	_arrow_color = ARROW_SELECTED if _stage == "targeting" else ARROW_ACTIVE
@@ -70,6 +73,7 @@ func clear_flow() -> void:
 	_target_id = -1
 	_offered_card = {}
 	_returned_cards.clear()
+	_acquired_cards.clear()
 	_stage_duration = 0.0
 	queue_redraw()
 
@@ -83,6 +87,8 @@ func arrow_color() -> Color:
 
 
 func flow_participants() -> Vector2i:
+	if _stage in ["acquisition", "acquisition_arrival"]:
+		return Vector2i(_target_id, _actor_id)
 	return Vector2i(_actor_id, _target_id)
 
 
@@ -95,7 +101,7 @@ func seat_center(player_id: int) -> Vector2:
 
 
 func _process(_delta: float) -> void:
-	if _stage_duration > 0.0 and _stage in ["offer_moving", "repayment_moving", "exchange", "arrival", "acquisition"]:
+	if _stage_duration > 0.0 and _stage in ["offer_moving", "repayment_moving", "exchange", "arrival", "acquisition", "acquisition_arrival"]:
 		queue_redraw()
 
 
@@ -151,12 +157,17 @@ func _seat_angle(index: int, player_count: int) -> float:
 
 
 func _arrow_points() -> PackedVector2Array:
-	var start := seat_center(_actor_id)
-	var finish := seat_center(_target_id)
+	var flow := flow_participants()
+	var start := seat_center(flow.x)
+	var finish := seat_center(flow.y)
 	var center := size * 0.5
 	var direct := finish - start
 	if direct.length() < 1.0:
 		return PackedVector2Array()
+	var direction := direct.normalized()
+	start += direction * (_seat_edge_distance(flow.x, direction) + 8.0)
+	finish -= direction * (_seat_edge_distance(flow.y, -direction) + 12.0)
+	direct = finish - start
 	var normal := Vector2(-direct.y, direct.x).normalized()
 	var control := center + normal * minf(80.0, direct.length() * 0.12)
 	var points := PackedVector2Array()
@@ -164,6 +175,18 @@ func _arrow_points() -> PackedVector2Array:
 		var t := float(index) / 40.0
 		points.append(_quadratic(start, control, finish, t))
 	return points
+
+
+func _seat_edge_distance(player_id: int, direction: Vector2) -> float:
+	for child in seats.get_children():
+		var seat := child as PlayerSeatPanel
+		if seat == null or seat.player_id != player_id:
+			continue
+		var half_size := seat.size * 0.5
+		var horizontal := INF if is_zero_approx(direction.x) else half_size.x / absf(direction.x)
+		var vertical := INF if is_zero_approx(direction.y) else half_size.y / absf(direction.y)
+		return minf(horizontal, vertical)
+	return 0.0
 
 
 func _quadratic(start: Vector2, control: Vector2, finish: Vector2, t: float) -> Vector2:
@@ -180,11 +203,14 @@ func _draw_arrow_head(points: PackedVector2Array) -> void:
 
 
 func _draw_trade_cards(points: PackedVector2Array) -> void:
-	if _offered_card.is_empty() or _stage == "crash":
+	if _offered_card.is_empty() or _stage in ["crash", "settled"]:
 		return
 	var progress := _stage_progress()
 	var offer_t := 0.40
 	var return_t := 0.60
+	var acquired_t := 0.60
+	var offer_side := 1.0
+	var acquired_side := -1.0
 	match _stage:
 		"offer_moving":
 			offer_t = lerpf(0.08, 0.40, progress)
@@ -197,10 +223,20 @@ func _draw_trade_cards(points: PackedVector2Array) -> void:
 			offer_t = lerpf(0.60, 0.92, progress)
 			return_t = lerpf(0.40, 0.08, progress)
 		"acquisition":
-			offer_t = lerpf(0.40, 0.92, progress)
-	_draw_card_group(points, offer_t, [_offered_card], 1.0 if _stage != "exchange" else cos(progress * PI))
-	if !_returned_cards.is_empty() and _stage in ["repayment_moving", "repayment_ready", "exchange", "arrival", "settled"]:
+			offer_t = 0.60
+			offer_side = -1.0
+			acquired_t = lerpf(0.08, 0.40, progress)
+			acquired_side = 1.0
+		"acquisition_arrival":
+			offer_t = lerpf(0.60, 0.92, progress)
+			offer_side = -1.0
+			acquired_t = lerpf(0.40, 0.92, progress)
+			acquired_side = 1.0
+	_draw_card_group(points, offer_t, [_offered_card], offer_side if _stage != "exchange" else cos(progress * PI))
+	if !_returned_cards.is_empty() and _stage in ["repayment_moving", "repayment_ready", "exchange", "arrival"]:
 		_draw_card_group(points, return_t, _returned_cards, -1.0 if _stage != "exchange" else -cos(progress * PI))
+	if !_acquired_cards.is_empty() and _stage in ["acquisition", "acquisition_arrival"]:
+		_draw_card_group(points, acquired_t, _acquired_cards, acquired_side)
 
 
 func _draw_card_group(points: PackedVector2Array, t: float, cards: Array, side: float) -> void:

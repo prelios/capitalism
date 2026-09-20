@@ -394,7 +394,8 @@ func _presentation_status(presentation: Dictionary) -> String:
 		"exchange": return "Trade accepted · exchanging the public cards"
 		"arrival": return "Cards arriving with their new owners"
 		"settled": return "Trade complete"
-		"acquisition": return "%s cannot repay · %s acquires the company" % [target, actor]
+		"acquisition": return "%s cannot repay · remaining cards move to the table" % target
+		"acquisition_arrival": return "%s acquires %s · all cards move to %s" % [actor, target, actor]
 		"crash": return "⚠ Acquisition interrupts the warning · value %d crashes now" % presentation.get("crash_value", -1)
 		_: return _latest_public_update()
 

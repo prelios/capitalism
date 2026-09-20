@@ -172,7 +172,7 @@ func submit_repayment(actor_id: int, card_ids: Array[String], generation := matc
 
 
 func _new_trade_context(actor_id: int, target_id: int, offered_card: Dictionary) -> Dictionary:
-	return {"actor_id": actor_id, "target_id": target_id, "offered_card": offered_card.duplicate(true), "returned_cards": [], "acquisition": false, "crash_value": -1}
+	return {"actor_id": actor_id, "target_id": target_id, "offered_card": offered_card.duplicate(true), "returned_cards": [], "acquired_cards": [], "acquisition": false, "crash_value": -1}
 
 
 func _capture_offer_outcome() -> void:
@@ -184,6 +184,8 @@ func _capture_offer_outcome() -> void:
 		var event: Dictionary = history[index]
 		if event["type"] == "trade_proposed":
 			break
+		if event["type"] == "player_acquired":
+			_trade_context["acquired_cards"] = event["data"]["cards"].duplicate(true)
 		if event["type"] == "market_crashed":
 			_trade_context["crash_value"] = event["data"]["value"]
 
@@ -213,6 +215,8 @@ func _present_successful_trade(generation: int) -> bool:
 
 func _present_acquisition(generation: int) -> bool:
 	if !await _present_stage("acquisition", acquisition_seconds, generation):
+		return false
+	if !await _present_stage("acquisition_arrival", arrival_seconds, generation):
 		return false
 	if _trade_context.get("crash_value", -1) > 0:
 		if !await _present_stage("crash", crash_interrupt_seconds, generation):

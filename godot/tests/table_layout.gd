@@ -41,6 +41,8 @@ func _init() -> void:
 	_expect(arena.stage() == "hover" and arena.arrow_color().is_equal_approx(TradeArena.ARROW_HOVER), "target hover did not show the yellow direction arrow")
 	table._on_target_selected(2)
 	_expect(arena.stage() == "selected" and arena.arrow_color().is_equal_approx(TradeArena.ARROW_SELECTED), "selected target did not show the red direction arrow")
+	arena.show_presentation({"stage": "acquisition", "actor_id": 1, "target_id": 2, "offered_card": {"id": "offer", "value": 4, "suit": "Tech"}, "acquired_cards": [{"id": "asset", "value": 1, "suit": "Money"}], "duration": 0.0})
+	_expect(arena.flow_participants() == Vector2i(2, 1), "acquisition flow arrow did not reverse from the victim toward the acquirer")
 	controller.game.players[1].die()
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame

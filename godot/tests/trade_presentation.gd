@@ -63,7 +63,9 @@ func _test_acquisition_and_crash_sequence() -> void:
 	await process_frame
 	await process_frame
 	var stages := _stages()
-	_expect(_contains_ordered(stages, ["offer_moving", "offer_ready", "acquisition", "crash", "settled"]), "acquisition/crash feedback was not presented in order: %s" % [stages])
+	_expect(_contains_ordered(stages, ["offer_moving", "offer_ready", "acquisition", "acquisition_arrival", "crash", "settled"]), "acquisition/crash feedback was not presented in order: %s" % [stages])
+	var acquisition := _first_presentation("acquisition")
+	_expect(acquisition.get("acquired_cards", []).size() == 1 and acquisition["acquired_cards"][0]["id"] == "victim-small", "acquisition presentation did not bring the victim's remaining cards into public view")
 	var crash := _first_presentation("crash")
 	_expect(crash.get("crash_value", -1) == 4, "crash interruption did not identify the destroyed value")
 	_expect(!controller.game.players[1].alive and controller.game.market_stable, "presentation changed acquisition or crash authority")
