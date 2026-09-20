@@ -33,7 +33,7 @@ func _test_human_offer() -> void:
 	await process_frame
 	var table := controller.get_node("GameTable") as GameTable
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
-	var seats := table.get_node("Margin/Layout/Main/Center/SeatScroll/Seats") as FlowContainer
+	var seats := table.get_node("Margin/Layout/Main/Center/Arena/Seats") as Control
 	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button
 	_expect(confirm.disabled, "offer confirmation began enabled")
 	_expect((seats.get_child(1) as PlayerSeatPanel).is_target_selectable(), "living opponent target was not selectable on the human turn")
@@ -53,11 +53,9 @@ func _test_human_offer() -> void:
 func _test_human_overpayment() -> void:
 	var controller := await _new_controller()
 	controller.fast_headless = false
-	controller.ai_delay_seconds = 0.02
-	controller.restart_game([1], 2)
-	controller.game.players[0].hand = [Card.new("human-overpay", 3, "Money")]
-	controller.game.players[1].hand = [Card.new("ai-offer", 2, "Workers"), Card.new("ai-extra", 1, "Tech")]
-	await create_timer(0.05).timeout
+	controller.presentation_speed_scale = 0.001
+	_start_configured_ai_turn(controller, [Card.new("human-overpay", 3, "Money")], [Card.new("ai-offer", 2, "Workers"), Card.new("ai-extra", 1, "Tech")])
+	await create_timer(0.08).timeout
 	var table := controller.get_node("GameTable") as GameTable
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
 	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button
@@ -73,11 +71,9 @@ func _test_human_overpayment() -> void:
 func _test_insufficient_repayment_selection() -> void:
 	var controller := await _new_controller()
 	controller.fast_headless = false
-	controller.ai_delay_seconds = 0.02
-	controller.restart_game([1], 2)
-	controller.game.players[0].hand = [Card.new("human-small", 1, "Money"), Card.new("human-large", 3, "Workers")]
-	controller.game.players[1].hand = [Card.new("ai-offer", 3, "Tech"), Card.new("ai-extra", 1, "Hype")]
-	await create_timer(0.05).timeout
+	controller.presentation_speed_scale = 0.001
+	_start_configured_ai_turn(controller, [Card.new("human-small", 1, "Money"), Card.new("human-large", 3, "Workers")], [Card.new("ai-offer", 3, "Tech"), Card.new("ai-extra", 1, "Hype")])
+	await create_timer(0.08).timeout
 	var table := controller.get_node("GameTable") as GameTable
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
 	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button
@@ -91,11 +87,9 @@ func _test_insufficient_repayment_selection() -> void:
 func _test_duplicate_values_repayment() -> void:
 	var controller := await _new_controller()
 	controller.fast_headless = false
-	controller.ai_delay_seconds = 0.02
-	controller.restart_game([1], 2)
-	controller.game.players[0].hand = [Card.new("duplicate-a", 2, "Money"), Card.new("duplicate-b", 2, "Workers")]
-	controller.game.players[1].hand = [Card.new("ai-offer", 4, "Tech")]
-	await create_timer(0.05).timeout
+	controller.presentation_speed_scale = 0.001
+	_start_configured_ai_turn(controller, [Card.new("duplicate-a", 2, "Money"), Card.new("duplicate-b", 2, "Workers")], [Card.new("ai-offer", 4, "Tech")])
+	await create_timer(0.08).timeout
 	var table := controller.get_node("GameTable") as GameTable
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
 	var confirm := table.get_node("Margin/Layout/Main/Center/Trade/Margin/Content/Confirm") as Button
@@ -103,6 +97,17 @@ func _test_duplicate_values_repayment() -> void:
 	(hand.get_child(1) as CardView).button_pressed = true
 	_expect(!confirm.disabled and table.selected_card_ids().size() == 2, "duplicate-valued cards were not independently selectable")
 	controller.queue_free()
+
+
+func _start_configured_ai_turn(controller: GameController, human_hand: Array[Card], ai_hand: Array[Card]) -> void:
+	controller.match_generation += 1
+	controller.setup_game()
+	controller.local_player_id = 1
+	controller.assign_human(1)
+	controller.game.current_player = controller.game.players[1]
+	controller.game.players[0].hand = human_hand
+	controller.game.players[1].hand = ai_hand
+	controller.play_game(controller.match_generation)
 
 
 func _expect(condition: bool, message: String) -> void:

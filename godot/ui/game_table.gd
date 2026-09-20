@@ -16,10 +16,12 @@ var _selected_target_id := -1
 var _feedback := ""
 var _market_background := Color.TRANSPARENT
 var _trade_background := Color.TRANSPARENT
+var _trade_presentation: Dictionary = {}
 
 @onready var _turn_status: PanelContainer = $Margin/Layout/Header/Margin/Content/TurnStatus
 @onready var _turn_label: Label = $Margin/Layout/Header/Margin/Content/TurnStatus/Turn
-@onready var _seats: FlowContainer = $Margin/Layout/Main/Center/SeatScroll/Seats
+@onready var _arena: TradeArena = $Margin/Layout/Main/Center/Arena
+@onready var _seats: Control = $Margin/Layout/Main/Center/Arena/Seats
 @onready var _trade: PanelContainer = $Margin/Layout/Main/Center/Trade
 @onready var _trade_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/TradeStatus
 @onready var _selection_label: Label = $Margin/Layout/Main/Center/Trade/Margin/Content/Selection
@@ -50,6 +52,7 @@ func bind_controller(controller: GameController) -> void:
 		_controller.presentation_updated.connect(_render)
 	_controller.decision_requested.connect(_on_decision_requested)
 	_controller.action_rejected.connect(_on_action_rejected)
+	_controller.trade_presentation_updated.connect(_on_trade_presentation_updated)
 	_confirm.pressed.connect(_confirm_selection)
 	_fast_forward.pressed.connect(_on_fast_forward)
 	_rematch.pressed.connect(_on_rematch)
@@ -94,17 +97,24 @@ func _render(view: PlayerView) -> void:
 
 func _render_seats(players: Array[Dictionary], state: Dictionary, local_player_id: int) -> void:
 	_clear_container(_seats)
+	_arena.set_local_player(local_player_id)
 	var trade: Dictionary = state["pending_trade"]
 	var target_id: int = _selected_target_id if _is_offer_decision() else (-1 if trade.is_empty() else trade["target_id"])
 	for player in players:
 		var seat := PLAYER_SEAT_SCENE.instantiate() as PlayerSeatPanel
 		_seats.add_child(seat)
+		seat.size = seat.custom_minimum_size
 		seat.set_public_player(player, player["player_id"] == local_player_id, player["player_id"] == state["current_player_id"], player["player_id"] == target_id)
 		seat.set_target_selectable(_is_offer_decision() and player["alive"] and player["player_id"] != local_player_id)
 		seat.target_selected.connect(_on_target_selected)
+		seat.target_hovered.connect(_on_target_hovered)
+	_arena.call_deferred("refresh_seat_layout")
 
 
 func _render_trade(state: Dictionary) -> void:
+	if !_trade_presentation.is_empty() and _trade_presentation.get("stage", "idle") != "idle":
+		_trade_label.text = _presentation_status(_trade_presentation)
+		return
 	var trade: Dictionary = state["pending_trade"]
 	if trade.is_empty():
 		_trade_label.text = _latest_public_update()
@@ -331,6 +341,8 @@ func _on_decision_requested(actor_id: int, phase: String, _view: PlayerView) -> 
 	_selected_card_ids.clear()
 	_selected_target_id = -1
 	_feedback = ""
+	_selection_label.visible = true
+	_confirm.visible = true
 	if _last_view != null:
 		_render(_last_view)
 
@@ -339,16 +351,66 @@ func _on_target_selected(player_id: int) -> void:
 	_selected_target_id = player_id
 	_feedback = ""
 	_render(_last_view)
+	_arena.show_target_preview(_local_actor_id(), player_id, true)
+
+
+func _on_target_hovered(player_id: int, hovering: bool) -> void:
+	if !_is_offer_decision():
+		return
+	if hovering:
+		_arena.show_target_preview(_local_actor_id(), player_id, player_id == _selected_target_id)
+	elif _selected_target_id > 0:
+		_arena.show_target_preview(_local_actor_id(), _selected_target_id, true)
+	else:
+		_arena.clear_target_preview()
+
+
+func _on_trade_presentation_updated(presentation: Dictionary) -> void:
+	_trade_presentation = presentation.duplicate(true)
+	if presentation.get("stage", "idle") == "idle":
+		_arena.clear_flow()
+	else:
+		_arena.show_presentation(presentation)
+		_decision_phase = ""
+		_confirm.disabled = true
+	_selection_label.visible = presentation.get("stage", "idle") == "idle"
+	_confirm.visible = presentation.get("stage", "idle") == "idle"
+	_trade_label.text = _presentation_status(presentation) if presentation.get("stage", "idle") != "idle" else _latest_public_update()
+
+
+func _presentation_status(presentation: Dictionary) -> String:
+	var actor_id: int = presentation.get("actor_id", -1)
+	var target_id: int = presentation.get("target_id", -1)
+	var identities := _player_identities(_last_view.public_state()["players"]) if _last_view != null else {}
+	var actor := _player_identity(actor_id, identities)
+	var target := _player_identity(target_id, identities)
+	var offered: Dictionary = presentation.get("offered_card", {})
+	match presentation.get("stage", "idle"):
+		"targeting": return "%s targets %s" % [actor, target]
+		"offer_moving": return "%s sends %s toward %s" % [actor, _card_description(offered), target]
+		"offer_ready": return "%s offers %s to %s\nAwaiting repayment." % [actor, _card_description(offered), target]
+		"repayment_moving": return "%s reveals a repayment to %s" % [target, actor]
+		"repayment_ready": return "Offer and repayment confirmed"
+		"exchange": return "Trade accepted · exchanging the public cards"
+		"arrival": return "Cards arriving with their new owners"
+		"settled": return "Trade complete"
+		"acquisition": return "%s cannot repay · %s acquires the company" % [target, actor]
+		"crash": return "⚠ Acquisition interrupts the warning · value %d crashes now" % presentation.get("crash_value", -1)
+		_: return _latest_public_update()
 
 
 func _update_action_controls(state: Dictionary) -> void:
 	_apply_trade_input_style(_is_offer_decision() or _is_repayment_decision())
 	var enabled := false
 	if _is_offer_decision():
+		_selection_label.visible = true
+		_confirm.visible = true
 		_trade_label.text = "Choose one card and a company to make your offer."
 		enabled = _selected_card_ids.size() == 1 and _selected_target_id > 0
 		_selection_label.text = "Card: %s · Target: %s%s" % [_selected_card_ids[0] if _selected_card_ids.size() == 1 else "none", "Player %d" % _selected_target_id if _selected_target_id > 0 else "none", _feedback]
 	elif _is_repayment_decision() and !state["pending_trade"].is_empty():
+		_selection_label.visible = true
+		_confirm.visible = true
 		var offered: Dictionary = state["pending_trade"]["offered_card"]
 		var total := _selected_value()
 		_trade_label.text = "Repay the offered value %d with any legal subset." % offered["value"]
@@ -356,6 +418,8 @@ func _update_action_controls(state: Dictionary) -> void:
 		_selection_label.text = "Selected total: %d / %d%s" % [total, offered["value"], _feedback]
 	else:
 		_selection_label.text = _feedback
+		_selection_label.visible = false
+		_confirm.visible = false
 		_confirm.disabled = true
 		return
 	_confirm.disabled = !enabled
@@ -407,7 +471,7 @@ func _is_offer_decision() -> bool:
 	if _last_view == null:
 		return _decision_phase == GameModel.PHASE_AWAITING_OFFER
 	var state := _last_view.public_state()
-	return state["phase"] == GameModel.PHASE_AWAITING_OFFER and state["current_player_id"] == _last_view.requester_id
+	return _decision_phase == GameModel.PHASE_AWAITING_OFFER and state["phase"] == GameModel.PHASE_AWAITING_OFFER and state["current_player_id"] == _last_view.requester_id
 
 
 func _is_repayment_decision() -> bool:
@@ -415,7 +479,7 @@ func _is_repayment_decision() -> bool:
 		return _decision_phase == GameModel.PHASE_AWAITING_REPAYMENT
 	var state := _last_view.public_state()
 	var trade: Dictionary = state["pending_trade"]
-	return state["phase"] == GameModel.PHASE_AWAITING_REPAYMENT and !trade.is_empty() and trade["target_id"] == _last_view.requester_id
+	return _decision_phase == GameModel.PHASE_AWAITING_REPAYMENT and state["phase"] == GameModel.PHASE_AWAITING_REPAYMENT and !trade.is_empty() and trade["target_id"] == _last_view.requester_id
 
 
 func _local_actor_id() -> int:
@@ -430,7 +494,7 @@ func _selected_value() -> int:
 	return total
 
 
-func _clear_container(container: Container) -> void:
+func _clear_container(container: Node) -> void:
 	for child in container.get_children():
 		container.remove_child(child)
 		child.queue_free()

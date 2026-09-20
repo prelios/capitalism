@@ -15,9 +15,16 @@ func _init() -> void:
 	var table := controller.get_node("GameTable") as GameTable
 	var poker_table := table.get_node("PokerTable") as ColorRect
 	_expect(poker_table.color.is_equal_approx(Color("062b1a")), "game table did not use the deep-green poker surface")
-	var seats := table.get_node("Margin/Layout/Main/Center/SeatScroll/Seats") as FlowContainer
+	var arena := table.get_node("Margin/Layout/Main/Center/Arena") as TradeArena
+	var seats := table.get_node("Margin/Layout/Main/Center/Arena/Seats") as Control
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
 	_expect(seats.get_child_count() == 4, "four-seat match did not render four public seat panels")
+	var local_center := arena.seat_center(1)
+	var left_center := arena.seat_center(2)
+	var top_center := arena.seat_center(3)
+	var right_center := arena.seat_center(4)
+	_expect(local_center.y > left_center.y and local_center.y > right_center.y and top_center.y < left_center.y, "four players were not placed at 6-9-12-3 o'clock")
+	_expect(left_center.x < local_center.x and right_center.x > local_center.x, "four-player clock ordering was incorrect")
 	_expect(hand.get_child_count() == 4, "local hand did not render the four private cards")
 	_expect(table.market_status_background().is_equal_approx(Color("173d2b")), "stable market status did not use the green style")
 	var market_detail := table.get_node("Margin/Layout/Main/Sidebar/Market/Margin/Content") as Label
@@ -30,6 +37,10 @@ func _init() -> void:
 	_expect(active_seat.get_node("Margin/Content/Identity").text.contains("Current"), "active player identity did not include the Current label")
 	_expect(active_seat.get_global_rect().encloses((active_seat.get_node("Margin/Content") as VBoxContainer).get_global_rect()), "player seat content exceeded its visual panel")
 	_expect(!active_seat.disabled, "inactive seat controls should not use desaturating disabled rendering")
+	table._on_target_hovered(2, true)
+	_expect(arena.stage() == "hover" and arena.arrow_color().is_equal_approx(TradeArena.ARROW_HOVER), "target hover did not show the yellow direction arrow")
+	table._on_target_selected(2)
+	_expect(arena.stage() == "selected" and arena.arrow_color().is_equal_approx(TradeArena.ARROW_SELECTED), "selected target did not show the red direction arrow")
 	controller.game.players[1].die()
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame
@@ -93,6 +104,10 @@ func _init() -> void:
 	controller.restart_game([1], 1)
 	await process_frame
 	_expect(seats.get_child_count() == 10, "ten-seat match did not render every player seat")
+	local_center = arena.seat_center(1)
+	var first_opponent_center := arena.seat_center(2)
+	var last_opponent_center := arena.seat_center(10)
+	_expect(first_opponent_center.y < local_center.y - 40.0 and last_opponent_center.y < local_center.y - 40.0, "ten-player layout did not reserve extra room around the human seat")
 	var conglomerate := controller.game.players[0]
 	conglomerate.owned_company_ids.clear()
 	for player in controller.game.players:

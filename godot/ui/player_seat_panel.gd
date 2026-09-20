@@ -6,6 +6,10 @@ class_name PlayerSeatPanel
 const COMPANY_TOKEN_SCENE := preload("res://ui/company_token.tscn")
 
 
+signal target_selected(player_id: int)
+signal target_hovered(player_id: int, hovering: bool)
+
+
 @onready var _identity: Label = $Margin/Content/Identity
 @onready var _hand_count: Label = $Margin/Content/HandCount
 @onready var _companies: Label = $Margin/Content/Companies
@@ -13,11 +17,16 @@ const COMPANY_TOKEN_SCENE := preload("res://ui/company_token.tscn")
 @onready var _state: Label = $Margin/Content/State
 
 
+func _ready() -> void:
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
+
+
 func set_public_player(player: Dictionary, is_local: bool, is_current: bool, is_target: bool) -> void:
 	player_id = player["player_id"]
 	_identity.text = "%s %s\nPlayer %d%s%s" % [player["company_emoji"], player["company_name"], player_id, " · You" if is_local else "", " · Current" if is_current else ""]
-	_hand_count.text = "%d card%s" % [player["hand_size"], "" if player["hand_size"] == 1 else "s"]
-	_companies.text = "%d compan%s owned" % [player["company_ids"].size(), "y" if player["company_ids"].size() == 1 else "ies"]
+	_hand_count.text = "%d card%s · %d compan%s" % [player["hand_size"], "" if player["hand_size"] == 1 else "s", player["company_ids"].size(), "y" if player["company_ids"].size() == 1 else "ies"]
+	_companies.visible = false
 	_set_company_tokens(player.get("company_tokens", []))
 	if !player["alive"]:
 		_state.text = "Acquired"
@@ -85,7 +94,16 @@ func seat_visual_background() -> Color:
 func _pressed() -> void:
 	if target_selectable:
 		target_selected.emit(player_id)
-signal target_selected(player_id: int)
+
+
+func _on_mouse_entered() -> void:
+	if target_selectable:
+		target_hovered.emit(player_id, true)
+
+
+func _on_mouse_exited() -> void:
+	if target_selectable:
+		target_hovered.emit(player_id, false)
 
 
 var player_id := -1

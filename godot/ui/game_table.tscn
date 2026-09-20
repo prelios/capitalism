@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://br67l3ho0g11" path="res://ui/game_table.gd" id="1"]
 [ext_resource type="Theme" uid="uid://ddpelfcpfeibm" path="res://ui/capitalism_theme.tres" id="2"]
+[ext_resource type="Script" path="res://ui/trade_arena.gd" id="3_arena"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_v8b5v"]
 
@@ -93,16 +94,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="SeatScroll" type="ScrollContainer" parent="Margin/Layout/Main/Center" unique_id=695242849]
-custom_minimum_size = Vector2(480, 280)
+[node name="Arena" type="Control" parent="Margin/Layout/Main/Center"]
+custom_minimum_size = Vector2(740, 465)
 layout_mode = 2
 size_flags_vertical = 3
+mouse_filter = 1
+script = ExtResource("3_arena")
 
-[node name="Seats" type="HFlowContainer" parent="Margin/Layout/Main/Center/SeatScroll" unique_id=2090878551]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 12
+[node name="Seats" type="Control" parent="Margin/Layout/Main/Center/Arena"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
 
 [node name="Trade" type="PanelContainer" parent="Margin/Layout/Main/Center" unique_id=2103910319]
 custom_minimum_size = Vector2(0, 108)
@@ -336,7 +342,7 @@ theme_override_font_sizes/font_size = 26
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 button_pressed = true
-text = "Show AI turns (2-second pace)"
+text = "Show staged trade animations"
 
 [node name="StartMatch" type="Button" parent="MainMenu/Panel/Margin/Content" unique_id=643214194]
 layout_mode = 2
