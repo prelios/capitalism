@@ -13,13 +13,15 @@ func _init() -> void:
 	controller.restart_game([1], 1)
 	await process_frame
 	var table := controller.get_node("GameTable") as GameTable
+	var poker_table := table.get_node("PokerTable") as ColorRect
+	_expect(poker_table.color.is_equal_approx(Color("062b1a")), "game table did not use the deep-green poker surface")
 	var seats := table.get_node("Margin/Layout/Main/Center/SeatScroll/Seats") as FlowContainer
 	var hand := table.get_node("Margin/Layout/Hand/Margin/Content/HandScroll/Hand") as FlowContainer
 	_expect(seats.get_child_count() == 4, "four-seat match did not render four public seat panels")
 	_expect(hand.get_child_count() == 4, "local hand did not render the four private cards")
 	_expect(table.market_status_background().is_equal_approx(Color("173d2b")), "stable market status did not use the green style")
 	var market_detail := table.get_node("Margin/Layout/Main/Sidebar/Market/Margin/Content") as Label
-	_expect(market_detail.text.contains("Calm market") and market_detail.text.contains("Repeated stable trades"), "stable market did not explain calm pressure")
+	_expect(market_detail.text.contains("stable and calm"), "stable market did not identify calm pressure")
 	_expect(table.trade_window_background().is_equal_approx(Color.WHITE), "trade window did not turn white while awaiting local input")
 	var banner := table.get_node("Margin/Layout/Header/Margin/Content/TurnStatus/Turn") as Label
 	_expect(banner.text.contains(controller.game.players[0].company_name) and banner.text.contains(controller.game.players[0].company_emoji), "turn banner did not identify the active conglomerate")
@@ -41,7 +43,7 @@ func _init() -> void:
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame
 	_expect(!(hand.get_child(1) as CardView).is_endangered(), "stable market marked a card as endangered")
-	_expect(market_detail.text.contains("Restless market") and !market_detail.text.contains("16"), "stable market did not present qualitative pressure without an exact counter")
+	_expect(market_detail.text.contains("stable but restless") and !market_detail.text.contains("16"), "stable market did not present qualitative pressure without an exact counter")
 	controller.game.market_stable = false
 	controller.game.unstable_value = 4
 	controller.presentation_updated.emit(controller.game.player_view(1))
@@ -60,7 +62,7 @@ func _init() -> void:
 	controller.presentation_updated.emit(controller.game.player_view(1))
 	await process_frame
 	_expect(!(hand.get_child(1) as CardView).is_endangered(), "post-crash stable market left a card marked as endangered")
-	_expect(market_detail.text.contains("Calm market"), "stable market did not reset pressure presentation")
+	_expect(market_detail.text.contains("stable and calm"), "stable market did not reset pressure presentation")
 	var expanded_hand: Array[Card] = []
 	for value in range(1, 25):
 		expanded_hand.append(Card.new("large-hand-%d" % value, value, "Money"))
@@ -75,7 +77,18 @@ func _init() -> void:
 	var crash_summary := table._event_summary({"type": "market_crashed", "data": {"value": 4, "bankrupt_player_ids": [2, 3]}})
 	_expect(crash_summary.contains("value 4") and crash_summary.contains("Player 2, Player 3"), "crash history omitted value or bankrupt players")
 	var warning_summary := table._event_summary({"type": "market_warning_updated", "data": {"value": 4, "turns_remaining": 3}})
-	_expect(warning_summary.contains("2 turns remaining after this turn"), "warning history did not describe the post-turn countdown")
+	_expect(warning_summary.contains("Market crash in 4 turns"), "warning history did not describe the pending crash")
+	var complete_history: Array[Dictionary] = []
+	for turn in range(1, 61):
+		complete_history.append({"type": "turn_started", "data": {"turn": turn, "actor_id": 1}})
+	table._render_history(complete_history, controller.game.public_snapshot()["players"])
+	await process_frame
+	await process_frame
+	var history := table.get_node("Margin/Layout/Main/Sidebar/History/Margin/Content") as RichTextLabel
+	_expect(history.text.contains("Turn 1") and history.text.contains("Turn 60"), "event log discarded early match events")
+	_expect(history.text.contains("────────"), "event log did not delimit turns")
+	var history_scrollbar := history.get_v_scroll_bar()
+	_expect(history_scrollbar.value >= maxf(0.0, history_scrollbar.max_value - history_scrollbar.page), "event log did not scroll to the latest event")
 	controller.selected_player_count = 10
 	controller.restart_game([1], 1)
 	await process_frame
