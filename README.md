@@ -21,6 +21,7 @@ From the repository root on macOS:
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path godot -s res://tests/controller_integration.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path godot -s res://tests/table_layout.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path godot -s res://tests/human_ui_flow.gd
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path godot -s res://tests/trade_presentation.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path godot -s res://tests/match_end_flow.gd
 ```
 
@@ -37,8 +38,9 @@ bankruptcy/meltdown, and last-acquisition monopoly.
 
 ## Current usability notes
 
-- AI turns use a short readable delay; spectator fast-forward removes it.
-- The table favors four-player desktop readability. Layout validation for the
-  full 4–10-player range is planned for the next epic.
+- Every trade uses individually tuned target, offer, repayment, exchange,
+  arrival, and hand-update beats; spectator fast-forward removes them.
+- Public seats use a clock layout for the full 4–10-player range, with the
+  human at 6 o'clock and extra space reserved around the local hand.
 - Market pressure currently shows the provisional completed-turn countdown;
   final presentation/tuning remains a playtest decision.
