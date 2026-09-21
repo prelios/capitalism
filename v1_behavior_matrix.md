@@ -32,7 +32,8 @@ rules into scenarios that later model, controller, and UI tests can reuse.
 | Trigger | Result |
 | --- | --- |
 | Stable acquisition with more than one survivor | Start a warning for the current highest active value. The provisional length is one completed warning turn per survivor at warning start; the triggering turn is the first. |
-| Boredom threshold exceeded | Start the same warning. Stable normal trades add one boredom; only one-card equal-value swaps add a second. |
+| Play-based boredom threshold exceeded | Start the same warning. Stable normal trades add one boredom; only one-card equal-value swaps add a second. |
+| Time-based countdown | The selected time-based policy starts the same warning after two full stable rounds without an elimination. An acquisition resets the countdown; the UI shows round and completed-turn progress. |
 | Acquisition during warning | Transfer the target hand, check monopoly first, then immediately resolve the pending crash if more than one survivor remains. |
 | Crash | Remove every card of the pending value simultaneously, bankrupt every player whose hand is then empty, return to stable, and reset boredom. Bankruptcies never queue a crash. |
 | Monopoly | An acquisition or crash leaves exactly one survivor. That player wins immediately. Acquisition monopoly takes precedence over a pending crash. |
@@ -55,9 +56,8 @@ is introduced.
 ## Provisional decisions to test
 
 - Warning length: one completed warning turn per survivor at warning start.
-- Boredom: counter threshold `> 10 × living players`; one extra point only
-  for a same-value, one-card swap.
-- Alternative boredom experiment: one or two full stable rounds without an
-  acquisition start the same warning.
-- Presentation: qualitative pressure versus an exact counter, and the fair
-  shipping bot roster, remain playtest choices.
+- Play-based boredom: counter threshold `> 10 × living players`; one extra
+  point only for a same-value, one-card swap.
+- Time-based market: two full stable rounds without an elimination start the
+  same warning, with an explicit round countdown.
+- The fair shipping bot roster remains a playtest choice.

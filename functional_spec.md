@@ -257,9 +257,16 @@ If a crash removes all remaining players, the game ends immediately in
 **Global Economic Meltdown** (working name). It has no winners. This is
 not a score tie.
 
-## 10. Stagnation / boredom
+## 10. Market pacing
 
-The prototype counter is the provisional v1 contraction policy. On a
+At match setup, the local player chooses one of two contraction policies.
+The choice applies only to how a stable market starts an instability warning;
+warning timing, crashes, bankruptcies, monopoly, duopoly, and meltdown rules
+remain identical.
+
+### Play-based market
+
+The play-based counter is the provisional v1 contraction policy. On a
 successful trade while the market is stable, boredom increases by 1. A
 same-value, one-card-for-one-card swap adds one further point. An exact
 split repayment is not a mirror: offering 3 and receiving 1+2 adds only
@@ -280,28 +287,28 @@ This is the v1 contraction mechanism. It replaces a crude maximum-turn
 cutoff; a simulation turn cap is diagnostic evidence of a fault, never a
 game result.
 
-### UI presentation
+### Time-based market
+
+The time-based policy ignores trade shape. If two full stable rounds pass
+without an elimination, it starts the same warning. A round begins with the
+current living-seat order and completes once every player alive when that
+round began has either completed one turn or been eliminated; newly
+eliminated seats are skipped and do not restart the round. Any acquisition
+resets the round countdown. The player-facing market panel shows the exact
+round and completed-turn progress toward the two-round trigger.
+
+### Play-based UI presentation
 
 The engine may maintain an integer counter without showing that exact
 integer. Player-facing states could instead communicate stable market,
 increasing pressure, instability warning, and crash.
 
-### Alternative playtest candidate: inactivity rounds
+### Playtest comparison
 
-The alternative candidate ignores trade shape. It starts a warning after
-one or two full stable rounds without an acquisition, with the exact
-round count selected for the experiment. A round begins with the current
-living-seat order and completes once every player alive when that round
-began has either completed one turn or been eliminated; newly eliminated
-seats are skipped and do not restart the round. An acquisition resets the
-round count. Warning timing, crash, bankruptcy, monopoly, duopoly, and
-meltdown rules remain unchanged.
-
-Playtesting should compare whether players understand the counter policy
-without a visible number, whether same-card swaps feel like deliberate
-stalling, how often warnings occur, and whether either approach causes
-unproductive downtime. The counter policy remains the implemented
-provisional setting until that evidence calls for the alternative.
+Playtesting should compare whether players understand the qualitative
+play-based feedback versus the explicit two-round countdown, whether
+same-card swaps feel like deliberate stalling, how often warnings occur,
+and whether either approach causes unproductive downtime.
 
 ## 11. Equilibrium
 
@@ -540,7 +547,7 @@ Prioritize a complete ugly-but-playable match:
 6.  Random AI turns.
 7.  Trade resolution/elimination.
 8.  Delayed instability and destruction of all highest-value cards.
-9.  Boredom-triggered instability.
+9.  Selectable play-based or time-based instability pacing.
 10. Monopoly, stable two-player Duopoly, and no-winner Global Economic
     Meltdown.
 11. Public event/trade log.

@@ -33,6 +33,9 @@ func _init() -> void:
 	controller.restart_game([1], 1)
 	_expect(!controller.submit_offer(1, 2, offered_id, old_generation), "stale offer affected a restarted match")
 	_expect(controller.game.phase == GameModel.PHASE_AWAITING_OFFER, "stale offer changed restarted match phase")
+	controller.set_market_policy(MatchConfig.MARKET_POLICY_TIME_BASED)
+	controller.restart_game([1], 1)
+	_expect(controller.game.market_policy == MatchConfig.MARKET_POLICY_TIME_BASED, "controller did not use the selected time-based market policy")
 	await _test_human_repayment_against_model(scene)
 	if failures.is_empty():
 		print("Controller integration checks passed.")

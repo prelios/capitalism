@@ -38,6 +38,7 @@ var _trade_presentation: Dictionary = {}
 @onready var _rematch: Button = $Result/Margin/Content/Rematch
 @onready var _main_menu: Control = $MainMenu
 @onready var _player_count: SpinBox = $MainMenu/Panel/Margin/Content/PlayerCount
+@onready var _market_policy: OptionButton = $MainMenu/Panel/Margin/Content/MarketPolicy
 @onready var _conglomerate_name: OptionButton = $MainMenu/Panel/Margin/Content/ConglomerateName
 @onready var _ai_pacing: CheckButton = $MainMenu/Panel/Margin/Content/AIPacing
 @onready var _start_match: Button = $MainMenu/Panel/Margin/Content/StartMatch
@@ -68,6 +69,7 @@ func show_main_menu(player_count := 4) -> void:
 	_player_count.get_line_edit().alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if _controller != null:
 		_populate_conglomerate_options()
+		_populate_market_policy_options()
 		_ai_pacing.button_pressed = _controller.ai_turn_pacing_enabled
 	_main_menu.visible = true
 
@@ -193,6 +195,7 @@ func _on_rematch() -> void:
 func _on_start_match() -> void:
 	if _controller != null:
 		_controller.set_player_one_conglomerate(_conglomerate_name.selected)
+		_controller.set_market_policy(String(_market_policy.get_item_metadata(_market_policy.selected)))
 		_controller.set_ai_turn_pacing(_ai_pacing.button_pressed)
 		_controller.start_match(int(_player_count.value))
 
@@ -211,6 +214,17 @@ func _populate_conglomerate_options() -> void:
 	_conglomerate_name.get_popup().add_theme_font_size_override("font_size", 26)
 
 
+func _populate_market_policy_options() -> void:
+	_market_policy.clear()
+	_market_policy.add_item("Play-based market · pressure from trades")
+	_market_policy.set_item_metadata(0, MatchConfig.MARKET_POLICY_PLAY_BASED)
+	_market_policy.add_item("Time-based market · 2 rounds without elimination")
+	_market_policy.set_item_metadata(1, MatchConfig.MARKET_POLICY_TIME_BASED)
+	_market_policy.select(1 if _controller.selected_market_policy == MatchConfig.MARKET_POLICY_TIME_BASED else 0)
+	_market_policy.add_theme_font_size_override("font_size", 20)
+	_market_policy.get_popup().add_theme_font_size_override("font_size", 20)
+
+
 func _latest_public_update() -> String:
 	if _last_view == null:
 		return "Trade floor ready"
@@ -222,6 +236,11 @@ func _latest_public_update() -> String:
 
 func _market_description(state: Dictionary) -> String:
 	if state["market_stable"]:
+		if state["market_policy"] == MatchConfig.MARKET_POLICY_TIME_BASED:
+			var completed_rounds: int = state["inactivity_rounds_completed"]
+			var completed_turns: int = state["inactivity_round_turns_completed"]
+			var round_players: int = state["inactivity_round_player_count"]
+			return "◷ Time-based market\nInstability after %d full rounds without an elimination.\nRound %d of %d · %d/%d turns complete\nHighest active value: %d" % [GameModel.TIME_BASED_ROUNDS_TO_WARNING, completed_rounds + 1, GameModel.TIME_BASED_ROUNDS_TO_WARNING, completed_turns, round_players, state["max_value"]]
 		return "%s\nHighest active value: %d" % [_market_pressure_copy(state["market_pressure"]), state["max_value"]]
 	var turns: int = state["turns_remaining"]
 	return "⚠ Instability warning\nCards with value %d will be removed at the crash.\n%d turn%s remaining" % [state["unstable_value"], turns, "" if turns == 1 else "s"]
@@ -240,6 +259,9 @@ func _apply_market_pressure_style(state: Dictionary) -> void:
 		_market_detail.remove_theme_color_override("font_color")
 		return
 	var color := Color("a8f0c5")
+	if state["market_policy"] == MatchConfig.MARKET_POLICY_TIME_BASED:
+		_market_detail.add_theme_color_override("font_color", color)
+		return
 	match state["market_pressure"]:
 		GameModel.MARKET_PRESSURE_MOVING: color = Color("b7d8f7")
 		GameModel.MARKET_PRESSURE_RESTLESS: color = Color("e7d89a")

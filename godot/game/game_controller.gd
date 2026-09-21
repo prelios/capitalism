@@ -50,6 +50,7 @@ var fast_headless := true
 var fast_forward := false
 var ai_turn_pacing_enabled := true
 var selected_player_count := NUM_PLAYERS
+var selected_market_policy := MatchConfig.MARKET_POLICY_PLAY_BASED
 var selected_conglomerate_index := 0
 var _main_menu_open := true
 var _trade_context: Dictionary = {}
@@ -296,6 +297,11 @@ func set_ai_turn_pacing(enabled: bool) -> void:
 	ai_turn_pacing_enabled = enabled
 
 
+func set_market_policy(policy: String) -> void:
+	if policy == MatchConfig.MARKET_POLICY_PLAY_BASED or policy == MatchConfig.MARKET_POLICY_TIME_BASED:
+		selected_market_policy = policy
+
+
 func conglomerate_options() -> Array[Dictionary]:
 	return CONGLOMERATES.duplicate(true)
 
@@ -331,7 +337,7 @@ func _publish_presentation() -> void:
 
 
 func setup_game() -> void:
-	self.game = GameModel.new(MatchConfig.for_player_count(selected_player_count, 1))
+	self.game = GameModel.new(MatchConfig.for_player_count(selected_player_count, 1, selected_market_policy))
 	_assign_conglomerates()
 	policy_rng.seed = game.config.rng_seed + 1
 	policies.clear()

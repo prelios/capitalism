@@ -22,6 +22,7 @@ const MARKET_PRESSURE_CALM := "Calm"
 const MARKET_PRESSURE_MOVING := "Moving"
 const MARKET_PRESSURE_RESTLESS := "Restless"
 const MARKET_PRESSURE_DANGEROUS := "Dangerous"
+const TIME_BASED_ROUNDS_TO_WARNING := 2
 
 
 var config: MatchConfig
@@ -39,10 +40,14 @@ var countdown_to_destruction := -1
 var unstable_value := -1
 var warning_turns_per_survivor: int
 var boredom_multiplier: int
+var market_policy := MatchConfig.MARKET_POLICY_PLAY_BASED
 var market_stable := true
 var game_finished := false
 var ending := ""
 var winner_ids: Array[int] = []
+var time_based_rounds_without_elimination := 0
+var time_based_round_player_ids: Array[int] = []
+var time_based_completed_player_ids: Array[int] = []
 var _public_history: Array[Dictionary] = []
 
 
@@ -58,6 +63,7 @@ func _init(configuration: MatchConfig) -> void:
 	max_value = config.player_count
 	warning_turns_per_survivor = config.warning_turns_per_survivor
 	boredom_multiplier = config.boredom_multiplier
+	market_policy = config.market_policy
 
 
 func create_deck() -> Array[Card]:
@@ -104,6 +110,7 @@ func start_next_turn() -> void:
 	if current_player == null:
 		finish_game("Global Economic Meltdown", [])
 		return
+	_start_time_based_round_if_needed()
 	phase = PHASE_AWAITING_OFFER
 	pending_trade = null
 	last_rejection = ""
@@ -175,7 +182,7 @@ func resolve_successful_trade(actor: Player, target: Player, offered_card: Card,
 	target.hand.append(offered_card)
 	actor.hand.erase(offered_card)
 	actor.hand.append_array(returned_cards)
-	if market_stable:
+	if market_stable and market_policy == MatchConfig.MARKET_POLICY_PLAY_BASED:
 		boredom_counter += 1
 		if returned_cards.size() == 1 and returned_cards[0].value == offered_card.value:
 			boredom_counter += 1
@@ -229,9 +236,11 @@ func finalize_turn() -> void:
 		return
 	if check_game_end():
 		return
-	if boredom_counter > boredom_multiplier * alive_players().size():
+	if market_policy == MatchConfig.MARKET_POLICY_PLAY_BASED and boredom_counter > boredom_multiplier * alive_players().size():
 		destabilize_market()
 		advance_warning()
+	elif market_policy == MatchConfig.MARKET_POLICY_TIME_BASED:
+		advance_time_based_market()
 
 
 func complete_turn() -> bool:
@@ -253,7 +262,7 @@ func end_turn() -> void:
 func destabilize_market() -> void:
 	if game_finished or !market_stable:
 		return
-	boredom_counter = 0
+	reset_market_pacing()
 	market_stable = false
 	unstable_value = highest_active_value()
 	if unstable_value <= 0:
@@ -299,9 +308,41 @@ func destroy_value() -> void:
 
 func stabilize_market() -> void:
 	market_stable = true
-	boredom_counter = 0
+	reset_market_pacing()
 	countdown_to_destruction = -1
 	unstable_value = -1
+
+
+func reset_market_pacing() -> void:
+	boredom_counter = 0
+	time_based_rounds_without_elimination = 0
+	time_based_round_player_ids.clear()
+	time_based_completed_player_ids.clear()
+
+
+func _start_time_based_round_if_needed() -> void:
+	if market_policy != MatchConfig.MARKET_POLICY_TIME_BASED or !market_stable or !time_based_round_player_ids.is_empty():
+		return
+	for player in alive_players():
+		time_based_round_player_ids.append(player.id)
+
+
+func advance_time_based_market() -> void:
+	_start_time_based_round_if_needed()
+	if current_player == null or !time_based_round_player_ids.has(current_player.id):
+		return
+	if !time_based_completed_player_ids.has(current_player.id):
+		time_based_completed_player_ids.append(current_player.id)
+	for player_id in time_based_round_player_ids:
+		var player := player_by_id(player_id)
+		if !time_based_completed_player_ids.has(player_id) and player != null and player.alive:
+			return
+	time_based_rounds_without_elimination += 1
+	time_based_round_player_ids.clear()
+	time_based_completed_player_ids.clear()
+	if time_based_rounds_without_elimination >= TIME_BASED_ROUNDS_TO_WARNING:
+		destabilize_market()
+		advance_warning()
 
 
 func check_game_end() -> bool:
@@ -366,7 +407,7 @@ func public_snapshot() -> Dictionary:
 			"target_id": pending_trade.target_id,
 			"offered_card": public_card(pending_trade.offered_card)
 		}
-	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "market_pressure": market_pressure(), "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "pending_trade": trade, "game_finished": game_finished, "ending": ending, "winner_ids": winner_ids.duplicate(), "players": seats}
+	return {"turn": turn_counter, "phase": phase, "current_player_id": -1 if current_player == null else current_player.id, "market_stable": market_stable, "market_policy": market_policy, "market_pressure": market_pressure(), "inactivity_rounds_completed": time_based_rounds_without_elimination, "inactivity_round_turns_completed": time_based_completed_player_ids.size(), "inactivity_round_player_count": time_based_round_player_ids.size(), "inactivity_rounds_until_warning": max(0, TIME_BASED_ROUNDS_TO_WARNING - time_based_rounds_without_elimination), "unstable_value": unstable_value, "max_value": max_value, "turns_remaining": countdown_to_destruction, "pending_trade": trade, "game_finished": game_finished, "ending": ending, "winner_ids": winner_ids.duplicate(), "players": seats}
 
 
 func player_view(requester_id: int) -> PlayerView:
@@ -398,7 +439,7 @@ func public_cards(cards: Array[Card]) -> Array[Dictionary]:
 
 
 func market_pressure() -> String:
-	if !market_stable:
+	if !market_stable or market_policy != MatchConfig.MARKET_POLICY_PLAY_BASED:
 		return ""
 	var threshold: int = max(1, boredom_multiplier * alive_players().size())
 	var progress: float = float(boredom_counter) / float(threshold)

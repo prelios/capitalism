@@ -29,6 +29,16 @@ func _init() -> void:
 	_expect(table.market_status_background().is_equal_approx(Color("173d2b")), "stable market status did not use the green style")
 	var market_detail := table.get_node("Margin/Layout/Main/Sidebar/Market/Margin/Content") as Label
 	_expect(market_detail.text.contains("stable and calm"), "stable market did not identify calm pressure")
+	controller.return_to_main_menu()
+	await process_frame
+	var market_policy := table.get_node("MainMenu/Panel/Margin/Content/MarketPolicy") as OptionButton
+	market_policy.select(1)
+	table._on_start_match()
+	await process_frame
+	_expect(controller.game.market_policy == MatchConfig.MARKET_POLICY_TIME_BASED and market_detail.text.contains("Time-based market") and market_detail.text.contains("Round 1 of 2"), "time-based market menu option did not start an explicit round countdown")
+	controller.set_market_policy(MatchConfig.MARKET_POLICY_PLAY_BASED)
+	controller.restart_game([1], 1)
+	await process_frame
 	_expect(table.trade_window_background().is_equal_approx(Color.WHITE), "trade window did not turn white while awaiting local input")
 	var banner := table.get_node("Margin/Layout/Header/Margin/Content/TurnStatus/Turn") as Label
 	_expect(banner.text.contains(controller.game.players[0].company_name) and banner.text.contains(controller.game.players[0].company_emoji), "turn banner did not identify the active conglomerate")

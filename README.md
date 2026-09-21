@@ -42,5 +42,6 @@ bankruptcy/meltdown, and last-acquisition monopoly.
   arrival, and hand-update beats; spectator fast-forward removes them.
 - Public seats use a clock layout for the full 4–10-player range, with the
   human at 6 o'clock and extra space reserved around the local hand.
-- Market pressure currently shows the provisional completed-turn countdown;
-  final presentation/tuning remains a playtest decision.
+- The start menu offers either play-based market pressure (qualitative
+  feedback) or a time-based market. The latter visibly counts two full rounds
+  without an elimination before starting the normal instability warning.

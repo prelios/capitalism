@@ -18,12 +18,13 @@ func _init() -> void:
 	test_stable_two_player_duopoly()
 	test_warning_timing_uses_completed_turns()
 	test_boredom_trade_policy()
+	test_time_based_market_policy()
 	test_market_pressure_feedback()
 	test_fixed_seat_turn_traversal()
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 14 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 15 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -36,8 +37,8 @@ func expect(condition: bool, message: String) -> void:
 		failures.append(message)
 
 
-func game_for(player_count: int, seed_value := 1) -> GameModel:
-	return GameModel.new(MatchConfig.for_player_count(player_count, seed_value))
+func game_for(player_count: int, seed_value := 1, market_policy := MatchConfig.MARKET_POLICY_PLAY_BASED) -> GameModel:
+	return GameModel.new(MatchConfig.for_player_count(player_count, seed_value, market_policy))
 
 
 func two_player_game() -> GameModel:
@@ -111,6 +112,10 @@ func test_seeded_card_setup_and_configuration() -> void:
 	var invalid_config := MatchConfig.for_player_count(3, 1)
 	var rejected_game := GameModel.new(invalid_config)
 	expect(!invalid_config.is_valid() and !rejected_game.configuration_error.is_empty(), "invalid player count was not rejected explicitly")
+	var invalid_policy := MatchConfig.for_player_count(4, 1, "invalid")
+	expect(!invalid_policy.is_valid(), "invalid market policy was not rejected explicitly")
+	var time_config := MatchConfig.for_player_count(4, 1, MatchConfig.MARKET_POLICY_TIME_BASED)
+	expect(time_config.is_valid() and GameModel.new(time_config).market_policy == MatchConfig.MARKET_POLICY_TIME_BASED, "time-based market policy was not retained by the match")
 
 	var suit_game := game_for(4)
 	var offered := Card.new("money-3", 3, "Money")
@@ -387,6 +392,37 @@ func test_boredom_trade_policy() -> void:
 	warning_game.market_stable = false
 	resolve_bot_trade(warning_game, warning_current, warning_target, warning_current.hand[0])
 	expect(warning_game.boredom_counter == 0, "warning-phase trade accumulated boredom")
+
+
+func test_time_based_market_policy() -> void:
+	var game := game_for(4, 1, MatchConfig.MARKET_POLICY_TIME_BASED)
+	var warning_events: Array[int] = []
+	game.market_unstable.connect(func(count: int) -> void: warning_events.append(count))
+	for _turn in range(7):
+		game.start_next_turn()
+		var actor := game.current_player
+		var target := game.players[actor.id % game.players.size()]
+		var offered := actor.hand[0]
+		expect(resolve_bot_trade(game, actor, target, offered), "time-based market rejected a successful stable trade")
+		expect(game.complete_turn(), "time-based market did not complete a successful stable turn")
+	var state := game.public_snapshot()
+	expect(game.market_stable and state["inactivity_rounds_completed"] == 1, "time-based market did not complete exactly one full round after four turns")
+	expect(state["inactivity_round_turns_completed"] == 3 and state["inactivity_round_player_count"] == 4, "time-based market did not show progress through the second full round")
+	expect(game.boredom_counter == 0 and game.market_pressure().is_empty(), "time-based market exposed play-based boredom pressure")
+	game.start_next_turn()
+	var final_actor := game.current_player
+	var final_target := game.players[final_actor.id % game.players.size()]
+	expect(resolve_bot_trade(game, final_actor, final_target, final_actor.hand[0]), "eighth stable trade was rejected")
+	expect(game.complete_turn(), "time-based market did not complete the second full round")
+	expect(!game.market_stable and game.countdown_to_destruction == 3 and warning_events == [4], "two full rounds without an elimination did not start the normal warning")
+
+	var reset_game := game_for(4, 1, MatchConfig.MARKET_POLICY_TIME_BASED)
+	reset_game.time_based_rounds_without_elimination = 1
+	reset_game.players[0].hand = cards([4])
+	reset_game.players[1].hand = cards([1])
+	reset_game.current_player = reset_game.players[0]
+	expect(resolve_bot_trade(reset_game, reset_game.players[0], reset_game.players[1], reset_game.players[0].hand[0]), "time-based acquisition was rejected")
+	expect(!reset_game.market_stable and reset_game.time_based_rounds_without_elimination == 0, "acquisition did not reset the time-based countdown")
 
 
 func test_market_pressure_feedback() -> void:
