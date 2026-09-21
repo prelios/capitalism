@@ -17,6 +17,7 @@ func _init() -> void:
 	test_simultaneous_bankruptcy_ends_in_meltdown()
 	test_stable_two_player_duopoly()
 	test_warning_timing_uses_completed_turns()
+	test_acquisition_warning_preserves_acquirer_turn()
 	test_boredom_trade_policy()
 	test_time_based_market_policy()
 	test_market_pressure_feedback()
@@ -24,7 +25,7 @@ func _init() -> void:
 	for player_count in [4, 6, 10]:
 		run_seeded_smoke(player_count, 1000 + player_count)
 	if failures.is_empty():
-		print("Regression checks passed: 15 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
+		print("Regression checks passed: 16 deterministic scenarios; smoke seeds 1004, 1006, 1010.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -353,15 +354,41 @@ func test_warning_timing_uses_completed_turns() -> void:
 	for player in game.players:
 		player.hand = cards([1, 2, 3, 4])
 	game.destabilize_market()
+	game.finalize_turn()
 	for _turn in range(4):
 		game.finalize_turn()
-	expect(announced_counts == [4, 3, 2, 1], "warning did not count each completed turn from the trigger")
+	expect(announced_counts == [4, 3, 2, 1], "warning did not count each completed turn after the trigger")
 	expect(game.market_stable and game.max_value == 3, "warning did not resolve the crash when its count reached zero")
 
 	var boredom_game := game_for(4)
 	boredom_game.boredom_counter = boredom_game.BOREDOM_MULTIPLIER * boredom_game.alive_players().size() + 1
 	boredom_game.finalize_turn()
-	expect(!boredom_game.market_stable and boredom_game.countdown_to_destruction == 3, "boredom warning did not count its triggering turn")
+	expect(!boredom_game.market_stable and boredom_game.countdown_to_destruction == 4, "boredom warning consumed its triggering turn")
+
+
+func test_acquisition_warning_preserves_acquirer_turn() -> void:
+	var game := game_for(4)
+	var acquirer := game.players[0]
+	var victim := game.players[1]
+	acquirer.hand = cards([4])
+	victim.hand = cards([1])
+	game.players[2].hand = cards([2])
+	game.players[3].hand = cards([3])
+	game.current_player = acquirer
+	expect(resolve_bot_trade(game, acquirer, victim, acquirer.hand[0]), "stable acquisition was rejected")
+	expect(!game.market_stable and game.countdown_to_destruction == 3, "stable acquisition did not start a three-survivor warning")
+	expect(game.complete_turn(), "acquisition turn did not complete")
+	for expected_player_id in [3, 4]:
+		game.start_next_turn()
+		expect(game.current_player.id == expected_player_id, "warning skipped Player %d before the acquirer's next turn" % expected_player_id)
+		game.phase = GameModel.PHASE_TURN_RESOLVED
+		expect(game.complete_turn(), "warning turn for Player %d did not complete" % expected_player_id)
+	expect(!game.market_stable and game.countdown_to_destruction == 1, "warning crashed before the acquirer's next turn")
+	game.start_next_turn()
+	expect(game.current_player == acquirer and !game.game_finished, "acquirer did not receive one more turn before the crash")
+	game.phase = GameModel.PHASE_TURN_RESOLVED
+	game.complete_turn()
+	expect(game.market_stable and game.max_value == 3, "warning did not crash after the acquirer's next turn")
 
 
 func test_boredom_trade_policy() -> void:
@@ -414,7 +441,7 @@ func test_time_based_market_policy() -> void:
 	var final_target := game.players[final_actor.id % game.players.size()]
 	expect(resolve_bot_trade(game, final_actor, final_target, final_actor.hand[0]), "eighth stable trade was rejected")
 	expect(game.complete_turn(), "time-based market did not complete the second full round")
-	expect(!game.market_stable and game.countdown_to_destruction == 3 and warning_events == [4], "two full rounds without an elimination did not start the normal warning")
+	expect(!game.market_stable and game.countdown_to_destruction == 4 and warning_events.is_empty(), "two full rounds without an elimination consumed its triggering turn")
 
 	var reset_game := game_for(4, 1, MatchConfig.MARKET_POLICY_TIME_BASED)
 	reset_game.time_based_rounds_without_elimination = 1

@@ -187,19 +187,19 @@ one turn per survivor. The survivor count is captured when the warning
 starts; later eliminations or bankruptcies do not extend or shorten its
 deadline.
 
-The triggering turn is the first completed warning turn. At that turn's
-finalization, the model announces the remaining count, decrements it, and
-resolves the crash immediately if it reaches zero. This applies equally to
-a stable-market acquisition and to boredom. The triggering action itself
-has already resolved before the warning begins, so all players see the
-pending value during that action's turn finalization.
+The triggering turn does **not** consume a warning turn. The warning starts
+after that turn finalizes, so an acquirer can take one more turn to trade away
+the pending value. At the finalization of each later completed turn, the
+model announces the remaining count, decrements it, and resolves the crash
+immediately if it reaches zero. This applies equally to a stable-market
+acquisition, boredom, and the time-based countdown.
 
 For example, an acquisition leaves four survivors while the market is
-stable. The warning begins with a count of four. Finalization of that
-acquisition turn announces 4, then later completed turns announce 3, 2,
-and 1. The count reaches zero at the end of the fourth warning turn, so
-the crash removes the pending value before another turn starts. The same
-sequence applies when boredom starts the warning. The setting is
+stable. The warning begins with a count of four. The next four completed
+turns announce 4, 3, 2, and 1. The count reaches zero at the end of the
+fourth warning turn, so the crash removes the pending value before another
+turn starts. The same sequence applies when boredom or the time-based
+countdown starts the warning. The setting is
 provisional for playtesting; presentation may expose it as an exact count
 or qualitative pressure.
 

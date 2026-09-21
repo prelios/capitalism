@@ -38,6 +38,7 @@ var last_rejection := ""
 var boredom_counter := 0
 var countdown_to_destruction := -1
 var unstable_value := -1
+var warning_waits_for_next_turn := false
 var warning_turns_per_survivor: int
 var boredom_multiplier: int
 var market_policy := MatchConfig.MARKET_POLICY_PLAY_BASED
@@ -232,13 +233,15 @@ func finalize_turn() -> void:
 	if game_finished:
 		return
 	if !market_stable:
+		if warning_waits_for_next_turn:
+			warning_waits_for_next_turn = false
+			return
 		advance_warning()
 		return
 	if check_game_end():
 		return
 	if market_policy == MatchConfig.MARKET_POLICY_PLAY_BASED and boredom_counter > boredom_multiplier * alive_players().size():
 		destabilize_market()
-		advance_warning()
 	elif market_policy == MatchConfig.MARKET_POLICY_TIME_BASED:
 		advance_time_based_market()
 
@@ -264,6 +267,7 @@ func destabilize_market() -> void:
 		return
 	reset_market_pacing()
 	market_stable = false
+	warning_waits_for_next_turn = true
 	unstable_value = highest_active_value()
 	if unstable_value <= 0:
 		check_game_end()
@@ -311,6 +315,7 @@ func stabilize_market() -> void:
 	reset_market_pacing()
 	countdown_to_destruction = -1
 	unstable_value = -1
+	warning_waits_for_next_turn = false
 
 
 func reset_market_pacing() -> void:
@@ -342,7 +347,6 @@ func advance_time_based_market() -> void:
 	time_based_completed_player_ids.clear()
 	if time_based_rounds_without_elimination >= TIME_BASED_ROUNDS_TO_WARNING:
 		destabilize_market()
-		advance_warning()
 
 
 func check_game_end() -> bool:

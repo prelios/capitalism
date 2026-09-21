@@ -31,7 +31,7 @@ rules into scenarios that later model, controller, and UI tests can reuse.
 
 | Trigger | Result |
 | --- | --- |
-| Stable acquisition with more than one survivor | Start a warning for the current highest active value. The provisional length is one completed warning turn per survivor at warning start; the triggering turn is the first. |
+| Stable acquisition with more than one survivor | Start a warning for the current highest active value. The provisional length is one completed warning turn per survivor at warning start; the triggering turn does not consume one, so the acquirer receives another turn before the crash. |
 | Play-based boredom threshold exceeded | Start the same warning. Stable normal trades add one boredom; only one-card equal-value swaps add a second. |
 | Time-based countdown | The selected time-based policy starts the same warning after two full stable rounds without an elimination. An acquisition resets the countdown; the UI shows round and completed-turn progress. |
 | Acquisition during warning | Transfer the target hand, check monopoly first, then immediately resolve the pending crash if more than one survivor remains. |
