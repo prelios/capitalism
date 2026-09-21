@@ -61,9 +61,25 @@ The script writes sendable archives and `SHA256SUMS` to `dist/`:
 - `capitalism-with-cards-<version>-linux-x86_64.tar.gz`
 
 You can also run **Build desktop playtest packages** from the repository's
-GitHub Actions tab. A manual run or a pushed `v*` tag imports and tests the
-project, builds all three packages with the pinned Godot version, and keeps
-them as a downloadable workflow artifact for 30 days.
+GitHub Actions tab. A manual run imports and tests the project, builds all
+three packages with the pinned Godot version, and keeps them as a downloadable
+workflow artifact for 30 days.
+
+For a public playtest release, first update `config/version` in
+`godot/project.godot`, commit that change, and push a matching `v*` tag. For
+example, version `0.2.0` must use tag `v0.2.0`:
+
+```sh
+git push origin main
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The tag workflow runs the same tests and exports. Only after they succeed, it
+creates the corresponding GitHub Release with generated notes and attaches
+the Windows, macOS, and Linux packages plus `SHA256SUMS`. Re-running a tag
+workflow safely replaces same-named release assets rather than creating a
+duplicate release.
 
 The macOS playtest export uses Godot's built-in ad-hoc signature. Downloaded
 builds therefore require the tester to Control-click the app and choose

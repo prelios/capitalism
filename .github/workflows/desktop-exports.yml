@@ -66,8 +66,21 @@ jobs:
         shell: bash
         env:
           GODOT_BIN: /home/runner/.local/bin/godot
-          VERSION: ${{ inputs.version || github.ref_name }}
-        run: ./scripts/build_desktop_exports.sh
+          MANUAL_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            project_version=$(sed -n 's/^config\/version="\([^"]*\)"$/\1/p' godot/project.godot)
+            expected_tag="v${project_version}"
+            if [[ "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match project version ${project_version}; expected ${expected_tag}."
+              exit 1
+            fi
+            export VERSION="${project_version}"
+          else
+            export VERSION="${MANUAL_VERSION}"
+          fi
+          ./scripts/build_desktop_exports.sh
 
       - name: Upload playtest packages
         uses: actions/upload-artifact@v4
@@ -76,3 +89,34 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
+
+  release:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download desktop packages
+        uses: actions/download-artifact@v4
+        with:
+          name: capitalism-with-cards-${{ github.ref_name }}
+          path: dist
+
+      - name: Create release and attach packages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" dist/* --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" dist/* \
+              --verify-tag \
+              --generate-notes \
+              --title "${GITHUB_REF_NAME}"
+          fi
