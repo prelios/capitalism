@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://br67l3ho0g11" path="res://ui/game_table.gd" id="1"]
 [ext_resource type="Theme" uid="uid://ddpelfcpfeibm" path="res://ui/capitalism_theme.tres" id="2"]
-[ext_resource type="Script" path="res://ui/trade_arena.gd" id="3_arena"]
+[ext_resource type="Script" uid="uid://s1eqvopumpli" path="res://ui/trade_arena.gd" id="3_arena"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_v8b5v"]
 
@@ -94,14 +94,14 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="Arena" type="Control" parent="Margin/Layout/Main/Center"]
+[node name="Arena" type="Control" parent="Margin/Layout/Main/Center" unique_id=2042339457]
 custom_minimum_size = Vector2(740, 465)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 1
 script = ExtResource("3_arena")
 
-[node name="Seats" type="Control" parent="Margin/Layout/Main/Center/Arena"]
+[node name="Seats" type="Control" parent="Margin/Layout/Main/Center/Arena" unique_id=794469769]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -328,12 +328,12 @@ max_value = 10.0
 value = 4.0
 rounded = true
 
-[node name="MarketPolicyLabel" type="Label" parent="MainMenu/Panel/Margin/Content"]
+[node name="MarketPolicyLabel" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=839924742]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "Market pacing"
 
-[node name="MarketPolicy" type="OptionButton" parent="MainMenu/Panel/Margin/Content"]
+[node name="MarketPolicy" type="OptionButton" parent="MainMenu/Panel/Margin/Content" unique_id=277002811]
 custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 
