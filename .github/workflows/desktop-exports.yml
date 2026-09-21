@@ -1,0 +1,78 @@
+name: Build desktop playtest packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version label used in package filenames
+        required: true
+        default: 0.1.0
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Export Windows, macOS, and Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GODOT_VERSION: 4.7.2
+      GODOT_RELEASE: stable
+
+    steps:
+      - name: Check out the project
+        uses: actions/checkout@v4
+
+      - name: Download Godot and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          release="${GODOT_VERSION}-${GODOT_RELEASE}"
+          base_url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}"
+          curl --fail --location --retry 3 \
+            --output /tmp/godot.zip \
+            "${base_url}/Godot_v${release}_linux.x86_64.zip"
+          curl --fail --location --retry 3 \
+            --output /tmp/godot-templates.tpz \
+            "${base_url}/Godot_v${release}_export_templates.tpz"
+          mkdir -p "${HOME}/.local/bin"
+          unzip -q /tmp/godot.zip -d "${HOME}/.local/bin"
+          mv "${HOME}/.local/bin/Godot_v${release}_linux.x86_64" "${HOME}/.local/bin/godot"
+          chmod +x "${HOME}/.local/bin/godot"
+          template_dir="${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}"
+          mkdir -p "${template_dir}" /tmp/godot-templates
+          unzip -q /tmp/godot-templates.tpz -d /tmp/godot-templates
+          cp -R /tmp/godot-templates/templates/. "${template_dir}/"
+
+      - name: Import and test the project
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot="${HOME}/.local/bin/godot"
+          "$godot" --headless --path godot --editor --import --quit
+          "$godot" --headless --path godot -s res://tests/regression.gd
+          "$godot" --headless --path godot -s res://tests/controller_integration.gd
+          "$godot" --headless --path godot -s res://tests/pacing_simulation.gd
+          "$godot" --headless --path godot -s res://tests/table_layout.gd
+          "$godot" --headless --path godot -s res://tests/human_ui_flow.gd
+          "$godot" --headless --path godot -s res://tests/trade_presentation.gd
+          "$godot" --headless --path godot -s res://tests/match_end_flow.gd
+
+      - name: Build desktop packages
+        shell: bash
+        env:
+          GODOT_BIN: /home/runner/.local/bin/godot
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: ./scripts/build_desktop_exports.sh
+
+      - name: Upload playtest packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: capitalism-with-cards-${{ inputs.version || github.ref_name }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30

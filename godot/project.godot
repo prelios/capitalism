@@ -15,6 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Capitalism With Cards"
+config/version="0.1.0"
 run/main_scene="uid://c21f2bck4tf7n"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
@@ -31,3 +32,4 @@ window/stretch/aspect="expand"
 [rendering]
 
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
