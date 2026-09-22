@@ -6,6 +6,18 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_v8b5v"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_i1fhm"]
+bg_color = Color(0.31764707, 0.27058825, 0.42352942, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 0.8, 0.33333334, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [node name="GameTable" type="Control" unique_id=1331214142]
 layout_mode = 3
 anchors_preset = 15
@@ -277,12 +289,13 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -440.0
-offset_right = 300.0
-offset_bottom = 440.0
+offset_left = -442.0
+offset_top = -453.5
+offset_right = 442.0
+offset_bottom = 453.5
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_i1fhm")
 
 [node name="Margin" type="MarginContainer" parent="MainMenu/Panel" unique_id=112649593]
 layout_mode = 2
@@ -298,27 +311,43 @@ theme_override_constants/separation = 18
 [node name="Title" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=1399973292]
 layout_mode = 2
 theme_override_font_sizes/font_size = 36
-text = "Capitalism With Cards"
+text = "You are destined for greatness"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=1001143794]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "You are Player 1. On your turn, offer one card to another living company. The target must return one or more cards worth at least as much; otherwise you acquire its company and every card it holds."
-horizontal_alignment = 1
+text = "You are one of many Conglomerates in the market.
+On your turn, offer exactly one card to another player. 
+The target must return one or more cards worth at least as much.
+If they can't, you acquire their Conglomerate and every card they hold."
 autowrap_mode = 2
 
 [node name="Rules" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=420599039]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Acquisitions make the market unstable. When its warning ends, every highest-value card is destroyed. Win by becoming the sole surviving company; two fully diversified survivors can share a duopoly."
-horizontal_alignment = 1
+text = "Acquisitions make the market unstable. 
+When its warning ends, every highest-value card is destroyed. 
+Win by achieving a monopoly (or stable duopoly with another player)."
 autowrap_mode = 2
+
+[node name="ConglomerateLabel" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=833540873]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Choose your conglomerate"
+horizontal_alignment = 1
+
+[node name="ConglomerateName" type="OptionButton" parent="MainMenu/Panel/Margin/Content" unique_id=385711845]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+alignment = 1
 
 [node name="PlayerCountLabel" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=1164335130]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "Players (4–10)"
+text = "Select Players (4–10)"
+horizontal_alignment = 1
 
 [node name="PlayerCount" type="SpinBox" parent="MainMenu/Panel/Margin/Content" unique_id=625735122]
 custom_minimum_size = Vector2(0, 70)
@@ -331,21 +360,12 @@ rounded = true
 [node name="MarketPolicyLabel" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=839924742]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "Market pacing"
+text = "Market pacing (when does the market get restless?)"
+horizontal_alignment = 1
 
 [node name="MarketPolicy" type="OptionButton" parent="MainMenu/Panel/Margin/Content" unique_id=277002811]
 custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
-
-[node name="ConglomerateLabel" type="Label" parent="MainMenu/Panel/Margin/Content" unique_id=833540873]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "Your conglomerate"
-
-[node name="ConglomerateName" type="OptionButton" parent="MainMenu/Panel/Margin/Content" unique_id=385711845]
-custom_minimum_size = Vector2(0, 64)
-layout_mode = 2
-theme_override_font_sizes/font_size = 26
 
 [node name="AIPacing" type="CheckButton" parent="MainMenu/Panel/Margin/Content" unique_id=955150177]
 layout_mode = 2

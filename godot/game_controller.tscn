@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://c21f2bck4tf7n"]
 
 [ext_resource type="Script" uid="uid://75qjidxh85hi" path="res://game/game_controller.gd" id="1_3iy47"]
-[ext_resource type="PackedScene" path="res://ui/game_table.tscn" id="3_table"]
+[ext_resource type="PackedScene" uid="uid://c2o03rg6xnqg6" path="res://ui/game_table.tscn" id="3_table"]
 
 [node name="GameController" type="Node" unique_id=1621176932]
 script = ExtResource("1_3iy47")
